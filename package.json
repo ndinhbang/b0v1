@@ -1,0 +1,19 @@
+{
+  "name": "b0v1",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev:admin": "pnpm --filter @b0v1/admin dev",
+    "build:admin": "pnpm --filter @b0v1/admin build",
+    "preview:admin": "pnpm --filter @b0v1/admin preview",
+    "dev:usr": "pnpm --filter @b0v1/usr dev",
+    "build:usr": "pnpm --filter @b0v1/usr build",
+    "preview:usr": "pnpm --filter @b0v1/usr preview",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@10.23.0"
+}

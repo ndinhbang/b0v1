@@ -1,0 +1,11 @@
+packages:
+  - apps/auth
+  - apps/api
+  - apps/admin
+  - apps/usr
+  - apps/lp
+  - packages/ui
+  - packages/types
+
+onlyBuiltDependencies:
+  - esbuild
