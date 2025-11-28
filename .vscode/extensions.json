@@ -1,0 +1,33 @@
+{
+  "recommendations": [
+    "vitest.explorer",
+    "formulahendry.auto-close-tag",
+    "formulahendry.auto-rename-tag",
+    "alefragnani.bookmarks",
+    "ms-vscode-remote.remote-containers",
+    "mikestead.dotenv",
+    "ms-vscode.remote-server",
+    "ms-vscode.remote-explorer",
+    "semanticdiff.semanticdiff",
+    "ms-vscode-remote.remote-wsl",
+    "ms-azuretools.vscode-containers",
+    "ms-azuretools.vscode-docker",
+    "docker.docker",
+    "editorconfig.editorconfig",
+    "dbaeumer.vscode-eslint",
+    "huizhou.githd",
+    "github.copilot",
+    "github.copilot-chat",
+    "phil294.git-log--graph",
+    "ms-vscode.hexeditor",
+    "mateuszchudyk.hexinspector",
+    "nhedger.inertia",
+    "ms-vscode.makefile-tools",
+    "ahmadalli.vscode-nginx-conf",
+    "ryu1kn.partial-diff",
+    "christian-kohler.path-intellisense",
+    "bradlc.vscode-tailwindcss",
+    "redhat.vscode-yaml",
+    "esbenp.prettier-vscode"
+  ]
+}

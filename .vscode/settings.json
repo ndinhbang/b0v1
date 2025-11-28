@@ -55,7 +55,7 @@
   // "githd.blameView.enabled": false,
   "git.blame.editorDecoration.enabled": false,
   "search.useIgnoreFiles": false,
-  "diffEditor.ignoreTrimWhitespace": true,
+  "diffEditor.ignoreTrimWhitespace": false,
   "scm.diffDecorationsIgnoreTrimWhitespace": "inherit",
   "files.trimTrailingWhitespace": true,
   "diffEditor.experimental.showMoves": true,

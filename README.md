@@ -1,4 +1,5 @@
 ### Project structure
+
 ```
 b0v1/
 ├── apps/               # Application codebases
