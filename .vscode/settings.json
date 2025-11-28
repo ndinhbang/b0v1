@@ -1,0 +1,74 @@
+{
+  "window.title": "${dirty}${rootName}${separator}${activeEditorShort}",
+  "workbench.colorCustomizations": {
+    "tab.activeBorderTop": "#23a171"
+  },
+  "workbench.tree.indent": 16,
+  "workbench.tree.renderIndentGuides": "always",
+  "workbench.view.alwaysShowHeaderActions": true,
+  "workbench.editor.highlightModifiedTabs": true,
+  "workbench.reduceMotion": "on",
+  "workbench.editor.limit.value": 10,
+  "workbench.editor.wrapTabs": true,
+  "workbench.editor.enablePreview": true,
+  "workbench.editor.enablePreviewFromCodeNavigation": true,
+  "workbench.editor.enablePreviewFromQuickOpen": true,
+
+  "explorer.autoReveal": true,
+
+  "editor.fontSize": 18,
+  "editor.lineHeight": 1.5,
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "file",
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[scss]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "editor.wordSeparators": "`~!@$#%^&*()=+[{]}\\|;:'\",.<>/?",
+  "editor.fontFamily": "JetBrains Mono, Consolas, 'Courier New', monospace",
+  "editor.snippetSuggestions": "top",
+  "files.watcherExclude": {
+    "**/node_modules/**": true
+  },
+
+  // "path-intellisense.mappings": {
+  //     "@": "${workspaceFolder}/src",
+  // }
+
+  // "githd.blameView.enabled": false,
+  "git.blame.editorDecoration.enabled": false,
+  "search.useIgnoreFiles": false,
+  "diffEditor.ignoreTrimWhitespace": true,
+  "scm.diffDecorationsIgnoreTrimWhitespace": "inherit",
+  "files.trimTrailingWhitespace": true,
+  "diffEditor.experimental.showMoves": true,
+  "diffEditor.hideUnchangedRegions.enabled": true,
+  "files.insertFinalNewline": true,
+  "files.readonlyInclude": {
+    "build/**": true,
+    "dist/**": true
+  },
+  "typescript.preferGoToSourceDefinition": true,
+  "javascript.preferGoToSourceDefinition": true,
+  "typescript.tsdk": "./node_modules/typescript/lib",
+
+  // "chat.mcp.gallery.enabled": true,
+  "chat.agent.maxRequests": 50
+}

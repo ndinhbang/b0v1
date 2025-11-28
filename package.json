@@ -6,6 +6,8 @@
     "hello": "./scripts/hello.sh",
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,vue,js,jsx,md}\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
