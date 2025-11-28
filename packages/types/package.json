@@ -1,7 +1,8 @@
 {
   "name": "@b0v1/types",
+  "private": true,
   "version": "1.0.0",
-  "description": "",
+  "description": "Shared TypeScript types",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

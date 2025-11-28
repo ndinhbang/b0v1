@@ -3,6 +3,7 @@
     "name": "@b0v1/api",
     "private": true,
     "type": "module",
+    "description": "Laravel resource API",
     "scripts": {
         "build": "vite build",
         "dev": "vite"

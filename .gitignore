@@ -19,6 +19,7 @@ build
 
 vendor
 public/storage
+public/dist
 storage/*.key
 storage/pail
 
@@ -40,3 +41,6 @@ stats.html
 
 playwright-report
 test-results
+.turbo
+.cache
+mise.local.toml
