@@ -1,0 +1,16 @@
+includes: .base.yaml
+contents:
+  packages:
+    - glibc
+    - libgcc
+    - libstdc++
+
+accounts:
+  groups:
+    - groupname: nonroot
+      gid: 65532
+  users:
+    - username: nonroot
+      uid: 65532
+      gid: 65532
+  run-as: nonroot

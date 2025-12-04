@@ -1,0 +1,33 @@
+services:
+  lp:
+    build:
+      context: ./apps/lp
+      dockerfile: dev.Dockerfile # https://docs.docker.com/build/concepts/context/#dockerignore-files
+    restart: unless-stopped
+    volumes:
+      - ./apps/lp:/app
+    working_dir: /app
+    env_file: # https://docs.docker.com/reference/compose-file/services/#env_file
+      - path: ./apps/lp/.env.docker.dev
+        required: true # fail if file is missing
+      - path: ./apps/lp/.env.docker.dev.local
+        required: false
+    networks:
+      - wolfi
+
+  nginx:
+    image: cgr.dev/chainguard/nginx:latest-dev
+    restart: unless-stopped
+    ports:
+      - 8000:8080
+    volumes:
+      # - ./apps/lp:/app
+      - ./infra/docker/nginx/dev.conf:/etc/nginx/nginx.conf
+    networks:
+      - wolfi
+    depends_on:
+      - lp
+
+networks:
+  wolfi:
+    driver: bridge

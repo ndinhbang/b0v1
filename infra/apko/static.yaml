@@ -1,0 +1,15 @@
+# https://images.chainguard.dev/directory/image/static/sbom
+# https://images.chainguard.dev/directory/image/static/specifications
+includes: .base.yaml
+contents:
+  packages:
+    - tzdata
+accounts:
+  groups:
+    - groupname: nonroot
+      gid: 65532
+  users:
+    - username: nonroot
+      uid: 65532
+      gid: 65532
+  run-as: nonroot

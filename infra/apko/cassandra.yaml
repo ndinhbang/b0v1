@@ -1,0 +1,70 @@
+# https://github.com/wolfi-dev/os/blob/main/cassandra-5.0.yaml
+# https://images.chainguard.dev/directory/image/cassandra/specifications
+# https://images.chainguard.dev/directory/image/cassandra/sbom
+includes: .base.yaml
+contents:
+  packages:
+    - busybox
+    - bash
+    - cassandra
+    - cassandra-compat
+    - openjdk-17-default-jvm
+
+accounts:
+  groups:
+    - groupname: cassandra
+      gid: 999
+  users:
+    - username: cassandra
+      uid: 999
+  run-as: 999
+
+work-dir: /
+
+entrypoint:
+  command: /opt/cassandra/bin/cassandra -f
+
+environment:
+  LANG: en_US.UTF-8
+  CASSANDRA_HOME: /opt/cassandra
+  CASSANDRA_CONF: /opt/cassandra/conf
+  CASSANDRA_LOGS_DIR: /opt/cassandra/logs
+  CASSANDRA_VERSION: "5.0.6"
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/cassandra/bin/
+
+paths:
+  - path: /var/lib/cassandra
+    type: directory
+    permissions: 511 # 0777
+    uid: 999
+    gid: 999
+    recursive: true
+  - path: /opt/cassandra
+    type: directory
+    permissions: 511 # 0777
+    uid: 999
+    gid: 999
+    recursive: true
+  - path: /opt/cassandra/logs
+    type: directory
+    permissions: 511 # 0777
+    uid: 999
+    gid: 999
+    recursive: true
+  - path: /opt/cassandra/conf
+    type: directory
+    permissions: 511 # 0777
+    uid: 999
+    gid: 999
+    recursive: true
+  - path: /var/lib/cassandra
+    type: directory
+    permissions: 511 # 0777
+    uid: 999
+    gid: 999
+  - path: /var/log/cassandra
+    type: directory
+    permissions: 511 # 0777
+    uid: 999
+    gid: 999
+    recursive: true

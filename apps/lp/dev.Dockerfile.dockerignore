@@ -1,0 +1,44 @@
+# https://docs.docker.com/build/concepts/context/#dockerignore-files
+
+# Exclude version control directories
+.git/
+.svn/
+
+# Exclude dependency management directories
+node_modules/
+vendor/
+target/
+build/
+
+# Exclude environment-specific files
+.env
+.env.*
+
+# Exclude log files
+*.log
+
+# Exclude temporary or cache files
+*.tmp
+*.swp
+.DS_Store
+
+# Exclude documentation or development-specific files
+.vscode/
+.idea/
+docs/
+tests/
+infra/
+README.md
+LICENSE
+
+# Exclude Docker-related files that are not part of the application
+Dockerfile
+*.Dockerfile
+.dockerignore
+*.dockerignore
+docker-compose.yml
+compose.yml
+compose.*.yml
+docker-compose.*.yml
+
+

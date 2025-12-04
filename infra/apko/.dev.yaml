@@ -1,0 +1,11 @@
+# https://github.com/chainguard-dev/apko/blob/main/docs/apko_file.md
+# https://github.com/chainguard-images/images/blob/main/BEST_PRACTICES.md
+includes: .base.yaml
+contents:
+  packages:
+    # - wolfi-base
+    - apk-tools
+    - bash
+    - busybox
+    - git
+    - wget

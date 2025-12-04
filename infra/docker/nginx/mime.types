@@ -1,0 +1,14 @@
+types {
+    text/html html htm;
+    text/css css;
+    image/png png;
+    image/jpg jpg jpeg;
+    image/gif gif;
+    image/svg+xml svg;
+    application/javascript js;
+    application/json json;
+    application/manifest+json webmanifest;
+    application/wasm wasm;
+    image/webp webp;
+    image/x-icon ico;
+}

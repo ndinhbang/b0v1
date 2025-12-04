@@ -1,0 +1,28 @@
+# https://www.meilisearch.com/docs/guides/running_production
+# https://www.meilisearch.com/docs/learn/self_hosted/configure_meilisearch_at_launch
+# https://raw.githubusercontent.com/meilisearch/meilisearch/latest/config.toml
+# https://github.com/wolfi-dev/os/blob/main/meilisearch.yaml (melange config file)
+includes: .dev.yaml
+contents:
+  packages:
+    - meilisearch
+
+accounts:
+  groups:
+    - groupname: meilisearch
+      gid: 999
+  users:
+    - username: meilisearch
+      uid: 999
+  run-as: 999
+
+entrypoint:
+  command: /usr/bin/meilisearch
+cmd: --help
+
+paths:
+  - path: /var/data.ms
+    type: directory
+    uid: 999
+    gid: 999
+    permissions: 488 # 0750

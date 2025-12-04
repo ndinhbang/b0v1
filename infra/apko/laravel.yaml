@@ -1,0 +1,61 @@
+# https://github.com/chainguard-dev/apko/blob/main/docs/apko_file.md
+# https://github.com/chainguard-images/images/blob/main/BEST_PRACTICES.md
+# https://github.com/wolfi-dev/os/blob/main/php-8.4.yaml
+# https://github.com/chainguard-images/images/blob/main/images/laravel/config/main.tf
+# https://github.com/chainguard-images/images/blob/main/images/laravel/main.tf
+# https://images.chainguard.dev/directory/image/laravel/sbom
+# https://images.chainguard.dev/directory/image/laravel/specifications
+includes: .dev.yaml
+contents:
+  packages:
+    - ca-certificates
+    - curl
+    - php
+    - php-ctype
+    - php-curl
+    - php-dom
+    - php-fileinfo
+    - php-fpm
+    - php-iconv
+    - php-mbstring
+    - php-mysqlnd
+    - php-openssl
+    - php-pdo
+    - php-pdo_mysql
+    - php-pdo_sqlite
+    - php-phar
+    - php-simplexml
+    - php-sodium
+    - php-xml
+    - php-zip
+    #  dev
+    - composer
+    - php-xmlwriter
+    # - php-xdebug
+
+entrypoint:
+  type: service-bundle
+  services:
+    php-fpm: /usr/bin/php-fpm
+
+paths:
+  - path: /app
+    type: directory
+    permissions: 511 # 0777
+    uid: 65532
+    gid: 65532
+
+work-dir: /app
+
+accounts:
+  groups:
+    - groupname: php
+      gid: 65532
+  users:
+    - username: php
+      uid: 65532
+      gid: 65532
+    - username: laravel
+      uid: 1000
+      gid: 1000
+  run-as: 65532
