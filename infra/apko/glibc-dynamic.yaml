@@ -1,4 +1,4 @@
-includes: .base.yaml
+includes: .dev.yaml
 contents:
   packages:
     - glibc

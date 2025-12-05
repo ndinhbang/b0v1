@@ -6,6 +6,9 @@
 # https://images.chainguard.dev/directory/image/laravel/sbom
 # https://images.chainguard.dev/directory/image/laravel/specifications
 # https://github.com/wolfi-dev/os/blob/main/nginx-mainline.yaml
+# https://github.com/nginx/nginx/tree/master
+# https://nginx.org/en/docs/configure.html
+# https://github.com/wolfi-dev/os/blob/main/nginx-mainline/nginx.conf
 # https://github.com/chainguard-images/images/blob/main/images/nginx/config/main.tf
 # https://github.com/chainguard-images/images/blob/main/images/nginx/main.tf
 # https://images.chainguard.dev/directory/image/nginx/sbom
@@ -57,27 +60,20 @@ contents:
 entrypoint:
   type: service-bundle
   services:
+    nginx: /usr/sbin/nginx -c /etc/nginx/nginx.conf -e /dev/stderr -g "daemon off;"
     php-fpm: /usr/sbin/php-fpm
-
-environment:
-  PATH: /usr/sbin:/sbin:/usr/bin:/bin
-  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
-
-paths:
-  - path: /app
-    type: directory
-    permissions: 511
-    uid: 65532
-    gid: 65532
 
 work-dir: /app
 
+# # Set stop signal to SIGQUIT for a graceful shutdown instead of S6's preferred SIGTERM (https://github.com/just-containers/s6-overlay/issues/586)
+stop-signal: SIGQUIT
+
 accounts:
   groups:
-    - groupname: php
+    - groupname: nginx
       gid: 65532
   users:
-    - username: php
+    - username: nginx
       uid: 65532
       gid: 65532
     - username: laravel
@@ -85,3 +81,41 @@ accounts:
       gid: 1000
 
   run-as: 65532
+
+paths:
+  - path: /app
+    type: directory
+    permissions: 511 # 0777
+    # permissions: 493 # Change to 0755 in production
+    uid: 65532
+    gid: 65532
+  - path: /var/lib/nginx
+    type: directory
+    uid: 65532
+    gid: 65532
+    permissions: 493 # 0755
+    recursive: true
+  - path: /var/lib/nginx/tmp
+    uid: 65532
+    gid: 65532
+    type: directory
+    # Wide permissions required for running with tmpfs. Seems to be related to Docker bug https://github.com/moby/moby/issues/40881
+    # https://github.com/docker/for-linux/issues/138
+    permissions: 511 # 0777
+    recursive: true
+  - path: /var/run
+    uid: 65532
+    gid: 65532
+    type: directory
+    # Wide permissions required for running with tmpfs. Seems to be related to Docker bug https://github.com/moby/moby/issues/40881
+    # https://github.com/docker/for-linux/issues/138
+    permissions: 511 # 0777
+    recursive: false
+  # The pid path was switched from /var/run/nginx.pid to /run/nginx.pid here
+  # https://github.com/wolfi-dev/os/pull/62917
+  - path: /run
+    uid: 65532
+    gid: 65532
+    type: directory
+    permissions: 511 # 0777
+    recursive: false

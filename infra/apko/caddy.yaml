@@ -3,7 +3,7 @@
 # https://github.com/wolfi-dev/os/blob/main/caddy.yaml
 # https://images.chainguard.dev/directory/image/caddy/specifications
 # https://images.chainguard.dev/directory/image/caddy/sbom
-includes: .base.yaml
+includes: .dev.yaml
 contents:
   packages:
     - caddy

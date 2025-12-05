@@ -1,7 +1,7 @@
 # https://github.com/wolfi-dev/os/blob/main/cassandra-5.0.yaml
 # https://images.chainguard.dev/directory/image/cassandra/specifications
 # https://images.chainguard.dev/directory/image/cassandra/sbom
-includes: .base.yaml
+includes: .dev.yaml
 contents:
   packages:
     - busybox

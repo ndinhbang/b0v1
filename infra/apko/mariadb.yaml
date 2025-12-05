@@ -2,7 +2,7 @@
 # https://github.com/chainguard-images/images/blob/main/images/mariadb/config/main.tf
 # https://images.chainguard.dev/directory/image/mariadb/specifications
 # https://images.chainguard.dev/directory/image/mariadb/sbom
-includes: .base.yaml
+includes: .dev.yaml
 contents:
   packages:
     - mariadb

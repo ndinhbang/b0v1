@@ -1,7 +1,7 @@
 # This image is meant to be used as a base image only, with just enough files to run native GraalVM native-image binaries
 # https://images.chainguard.dev/directory/image/graalvm-native/specifications
 # https://images.chainguard.dev/directory/image/graalvm-native/sbom
-includes: .base.yaml
+includes: .dev.yaml
 contents:
   packages:
     - tzdata

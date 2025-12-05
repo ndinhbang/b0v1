@@ -1,6 +1,6 @@
 # https://images.chainguard.dev/directory/image/static/sbom
 # https://images.chainguard.dev/directory/image/static/specifications
-includes: .base.yaml
+includes: .dev.yaml
 contents:
   packages:
     - tzdata
