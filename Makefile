@@ -24,7 +24,7 @@ wolfi:
 	docker run -it --pull=always cgr.dev/chainguard/wolfi-base
 
 apko:
-	docker run --rm $(APKO_IMAGE) version
+	docker run --rm --pull=always cgr.dev/chainguard/apko version
 
 digests:
 	docker images --digests > docker-images.txt
