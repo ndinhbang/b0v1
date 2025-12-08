@@ -7,11 +7,27 @@
 # https://github.com/chainguard-images/images/blob/main/images/nginx/main.tf
 # https://images.chainguard.dev/directory/image/nginx/sbom
 # https://images.chainguard.dev/directory/image/nginx/specifications
-includes: .dev.yaml
 contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
   packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
     - nginx-mainline
     - nginx-mainline-package-config
+    # dev
+    - apk-tools
+    - busybox
+    - bash
+    - git
+    - wget
+
+environment:
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
 
 accounts:
   groups:
@@ -60,3 +76,7 @@ paths:
     type: directory
     permissions: 511 # 0777
     recursive: false
+
+archs:
+  - x86_64
+  - aarch64

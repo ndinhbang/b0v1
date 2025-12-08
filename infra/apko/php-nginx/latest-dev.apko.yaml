@@ -13,9 +13,15 @@
 # https://github.com/chainguard-images/images/blob/main/images/nginx/main.tf
 # https://images.chainguard.dev/directory/image/nginx/sbom
 # https://images.chainguard.dev/directory/image/nginx/specifications
-includes: .dev.yaml
 contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
   packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
     - ca-certificates
     - curl
     - nginx-mainline
@@ -41,6 +47,11 @@ contents:
     # dev
     - composer
     - php-xmlwriter
+    - apk-tools
+    - busybox
+    - bash
+    - git
+    - wget
     # Additional extensions
     # - php-apcu
     # - php-gd
@@ -62,6 +73,10 @@ entrypoint:
   services:
     nginx: /usr/sbin/nginx -c /etc/nginx/nginx.conf -e /dev/stderr -g "daemon off;"
     php-fpm: /usr/sbin/php-fpm
+
+environment:
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
 
 work-dir: /app
 
@@ -119,3 +134,7 @@ paths:
     type: directory
     permissions: 511 # 0777
     recursive: false
+
+archs:
+  - x86_64
+  - aarch64

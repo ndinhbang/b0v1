@@ -2,10 +2,22 @@
 # https://www.meilisearch.com/docs/learn/self_hosted/configure_meilisearch_at_launch
 # https://raw.githubusercontent.com/meilisearch/meilisearch/latest/config.toml
 # https://github.com/wolfi-dev/os/blob/main/meilisearch.yaml (melange config file)
-includes: .dev.yaml
 contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
   packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
     - meilisearch
+    # dev
+    - apk-tools
+    - busybox
+    - bash
+    - git
+    - wget
 
 accounts:
   groups:
@@ -20,9 +32,17 @@ entrypoint:
   command: /usr/bin/meilisearch
 cmd: --help
 
+environment:
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+
 paths:
   - path: /var/data.ms
     type: directory
     uid: 999
     gid: 999
     permissions: 488 # 0750
+
+archs:
+  - x86_64
+  - aarch64

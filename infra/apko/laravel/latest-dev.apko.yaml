@@ -5,9 +5,15 @@
 # https://github.com/chainguard-images/images/blob/main/images/laravel/main.tf
 # https://images.chainguard.dev/directory/image/laravel/sbom
 # https://images.chainguard.dev/directory/image/laravel/specifications
-includes: .dev.yaml
 contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
   packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
     - ca-certificates
     - curl
     - php
@@ -27,16 +33,25 @@ contents:
     - php-simplexml
     - php-sodium
     - php-xml
-    - php-zip
+    # - php-zip
     #  dev
     - composer
     - php-xmlwriter
+    - apk-tools
+    - busybox
+    - bash
+    - git
+    - wget
     # - php-xdebug
 
 entrypoint:
   type: service-bundle
   services:
     php-fpm: /usr/bin/php-fpm
+
+environment:
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
 
 paths:
   - path: /app
@@ -59,3 +74,7 @@ accounts:
       uid: 1000
       gid: 1000
   run-as: 65532
+
+archs:
+  - x86_64
+  - aarch64

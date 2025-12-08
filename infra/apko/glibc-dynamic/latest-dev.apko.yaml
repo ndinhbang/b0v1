@@ -1,5 +1,3 @@
-# https://github.com/chainguard-dev/apko/blob/main/docs/apko_file.md
-# https://github.com/chainguard-images/images/blob/main/BEST_PRACTICES.md
 contents:
   repositories:
     - https://packages.wolfi.dev/os
@@ -9,10 +7,29 @@ contents:
     - ca-certificates-bundle
     - wolfi-baselayout
     - glibc-locale-posix
-    # - tzdata
+    - glibc
+    - libgcc
+    - libstdc++
+    # dev
+    - apk-tools
+    - busybox
+    - bash
+    - git
+    - wget
+
 environment:
   PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
   SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+
+accounts:
+  groups:
+    - groupname: nonroot
+      gid: 65532
+  users:
+    - username: nonroot
+      uid: 65532
+      gid: 65532
+  run-as: nonroot
 
 archs:
   - x86_64

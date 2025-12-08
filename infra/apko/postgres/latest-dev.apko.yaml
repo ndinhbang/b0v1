@@ -2,9 +2,15 @@
 # https://images.chainguard.dev/directory/image/postgres/specifications
 # https://images.chainguard.dev/directory/image/postgres/sbom
 # https://github.com/wolfi-dev/os/blob/main/postgresql-18.yaml
-includes: .dev.yaml
 contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
   packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
     - posix-libc-utils
     - glibc-locale-en
     - busybox
@@ -15,10 +21,18 @@ contents:
     - postgresql-18-contrib
     - libpq-18
     - pgaudit-18
+    # dev
+    - apk-tools
+    - busybox
+    - bash
+    - git
+    - wget
 
 environment:
   LANG: en_US.UTF-8
   PGDATA: /var/lib/postgresql/data
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
 
 entrypoint:
   command: /usr/bin/docker-entrypoint.sh postgres
@@ -48,3 +62,7 @@ paths:
     gid: 70
     permissions: 511 # 0777
     recursive: true
+
+archs:
+  - x86_64
+  - aarch64

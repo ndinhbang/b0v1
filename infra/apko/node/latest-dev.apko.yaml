@@ -5,9 +5,15 @@
 # https://github.com/chainguard-images/images/blob/main/images/node/main.tf
 # https://images.chainguard.dev/directory/image/node/sbom
 # https://images.chainguard.dev/directory/image/node/specifications
-includes: .dev.yaml
 contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
   packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
     - nodejs-24
     - dumb-init
     - busybox
@@ -18,6 +24,11 @@ contents:
     - corepack
     - pnpm
     - yarn
+    - apk-tools
+    - busybox
+    - bash
+    - git
+    - wget
 
 entrypoint:
   command: /usr/bin/node
@@ -26,6 +37,8 @@ cmd: --help
 environment:
   # NODE_PORT: 3000
   NPM_CONFIG_UPDATE_NOTIFIER: false # Disables npm update notifications
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
 
 work-dir: /app
 
@@ -44,3 +57,7 @@ paths:
     permissions: 511 # 0777
     uid: 65532
     gid: 65532
+
+archs:
+  - x86_64
+  - aarch64

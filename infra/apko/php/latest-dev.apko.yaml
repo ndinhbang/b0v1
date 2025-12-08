@@ -3,15 +3,20 @@
 # https://github.com/wolfi-dev/os/blob/main/php-8.4.yaml
 # https://images.chainguard.dev/directory/image/php/specifications
 # https://images.chainguard.dev/directory/image/php/sbom
-# https://github.com/chainguard-images/images/blob/main/images/php/config/fpm/main.tf
-# https://github.com/chainguard-images/images/blob/main/images/php/fpm.tf
-includes: .dev.yaml
+# https://github.com/chainguard-images/images/blob/main/images/php/config/main.tf
+# https://github.com/chainguard-images/images/blob/main/images/php/main.tf
 contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
   packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
     - ca-certificates
     - curl
     - php
-    - php-fpm
     - php-curl
     - php-openssl
     - php-mbstring
@@ -24,11 +29,18 @@ contents:
     - php-phar
     # dev
     - composer
+    - apk-tools
+    - busybox
+    - bash
+    - git
+    - wget
 
 entrypoint:
-  type: service-bundle
-  services:
-    php-fpm: /usr/bin/php-fpm
+  command: /bin/php
+
+environment:
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
 
 paths:
   - path: /app
@@ -48,3 +60,7 @@ accounts:
       uid: 65532
       gid: 65532
   run-as: 65532
+
+archs:
+  - x86_64
+  - aarch64
