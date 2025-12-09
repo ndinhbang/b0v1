@@ -1,0 +1,54 @@
+# https://github.com/wolfi-dev/os/blob/main/apache2.yaml
+# https://httpd.apache.org/docs/2.4/programs/configure.html
+# https://github.com/docker-library/httpd/blob/master/2.4/alpine/Dockerfile
+# https://github.com/docker-library/httpd/blob/master/2.4/Dockerfile
+# https://images.chainguard.dev/directory/image/httpd/sbom
+# https://images.chainguard.dev/directory/image/httpd/specifications
+contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+  packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
+    - apache2
+    - apache2-compat
+    # dev
+    - apk-tools
+    - busybox
+    - bash
+    - git
+    - wget
+
+entrypoint:
+  command: /usr/local/bin/httpd-foreground
+
+environment:
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+
+stop-signal: SIGWINCH
+
+accounts:
+  groups:
+    - groupname: www-data
+      gid: 65532
+  users:
+    - username: www-data
+      uid: 65532
+      gid: 65532
+  run-as: 65532
+
+paths:
+  - path: /usr/local/apache2/var/run/apache2
+    type: directory
+    uid: 65532
+    gid: 65532
+    permissions: 493 # 0755
+    recursive: true
+
+archs:
+  - x86_64
+  - aarch64

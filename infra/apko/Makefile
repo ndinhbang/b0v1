@@ -19,7 +19,7 @@ SDK_IMAGE=ghcr.io/wolfi-dev/sdk@sha256:5866033aff23f88676d20ced03a4113f24d5957bf
 tag ?= latest-dev
 name ?= laravel
 cache_dir ?= $(PWD)/.cache
-log_level ?= debug
+log_level ?= info
 
 .PHONY: digests
 digests:
@@ -45,6 +45,10 @@ sdk:
 laravel:
 	docker run -it --rm --pull=always cgr.dev/chainguard/laravel:latest-dev
 
+.PHONY: nginx
+nginx:
+	docker run -it --rm --pull=always cgr.dev/chainguard/nginx:latest-dev
+
 .PHONY: lock
 lock:
 	apko lock $(PWD)/$(name)/$(tag).apko.yaml \
@@ -53,8 +57,15 @@ lock:
 		--cache-dir $(cache_dir) \
 		--output $(PWD)/$(name)/$(tag).lock.json
 
-.PHONY: build-image
-build-image:
+.PHONY: minirootfs
+minirootfs:
+	mkdir -p $(PWD)/$(name)/$(tag) && \
+	apko build-minirootfs $(PWD)/$(name)/$(tag).apko.yaml $(PWD)/$(name)/$(tag)/minirootfs.tar.gz \
+		--workdir $(PWD)/$(name) \
+		--log-level $(log_level) \
+
+.PHONY: image
+image:
 	$(eval offline := 1)
 	mkdir -p $(PWD)/$(name)/$(tag) && \
 	apko build $(PWD)/$(name)/$(tag).apko.yaml $(name):$(tag) $(PWD)/$(name)/$(tag)/image.tar \
@@ -65,13 +76,23 @@ build-image:
 		--lockfile $(PWD)/$(name)/$(tag).lock.json \
 		$(if $(filter 1,$(offline)),--offline,) ; \
 
-.PHONY: load-image
-load-image:
+.PHONY: show-packages
+show-packages:
+	$(eval offline := 0)
+	apko show-packages $(PWD)/$(name)/$(tag).apko.yaml \
+		--workdir $(PWD)/$(name) \
+		--log-level $(log_level) \
+		--cache-dir $(cache_dir) \
+		--format "{{ .Name }}={{ .Version }}" \
+		$(if $(filter 1,$(offline)),--offline,) ; \
+
+.PHONY: load
+load:
 	docker load -i $(PWD)/$(name)/$(tag)/image.tar
 
-show-packages:
-	apko show-packages $(PWD)/laravel.yaml
-
-.PHONY: test-image
-test-image:
+.PHONY: test
+test:
 	docker run -it --rm $(name):$(tag)-amd64
+
+.PHONY: build
+build: lock minirootfs image load

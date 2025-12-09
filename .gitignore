@@ -44,3 +44,8 @@ test-results
 .turbo
 .cache
 mise.local.toml
+
+sbom*
+*.tar
+*.tar.gz
+*.lock.json
