@@ -18,16 +18,7 @@ contents:
     - dumb-init
     - busybox
     - nghttp2
-    - npm
-    # dev
-    - build-base
-    - corepack
-    - pnpm
-    - yarn
-    - apk-tools
-    - bash
-    - git
-    - wget
+    # - npm
 
 entrypoint:
   command: /usr/bin/node
@@ -53,7 +44,7 @@ accounts:
 paths:
   - path: /app
     type: directory
-    permissions: 511 # 0777
+    permissions: 493 # 0755
     uid: 65532
     gid: 65532
 

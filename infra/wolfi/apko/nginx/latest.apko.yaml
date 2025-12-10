@@ -1,0 +1,76 @@
+# https://github.com/chainguard-dev/apko/blob/main/docs/apko_file.md
+# https://github.com/chainguard-images/images/blob/main/BEST_PRACTICES.md
+# https://github.com/wolfi-dev/os/blob/main/nginx-mainline.yaml
+# https://github.com/nginx/nginx/tree/master
+# https://nginx.org/en/docs/configure.html
+# https://github.com/chainguard-images/images/blob/main/images/nginx/config/main.tf
+# https://github.com/chainguard-images/images/blob/main/images/nginx/main.tf
+# https://images.chainguard.dev/directory/image/nginx/sbom
+# https://images.chainguard.dev/directory/image/nginx/specifications
+contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+  packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
+    - nginx-mainline
+    - nginx-mainline-package-config
+
+environment:
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+
+accounts:
+  groups:
+    - groupname: nginx
+      gid: 65532
+  users:
+    - username: nginx
+      uid: 65532
+      gid: 65532
+  run-as: 65532
+
+entrypoint:
+  command: /usr/sbin/nginx
+cmd: -c /etc/nginx/nginx.conf -e /dev/stderr -g "daemon off;"
+
+stop-signal: SIGQUIT
+
+paths:
+  - path: /var/lib/nginx
+    type: directory
+    uid: 65532
+    gid: 65532
+    permissions: 493 # 0755
+    recursive: true
+  - path: /var/lib/nginx/tmp
+    uid: 65532
+    gid: 65532
+    type: directory
+    # Wide permissions required for running with tmpfs. Seems to be related to Docker bug https://github.com/moby/moby/issues/40881
+    # https://github.com/docker/for-linux/issues/138
+    permissions: 511 # 0777
+    recursive: true
+  - path: /var/run
+    uid: 65532
+    gid: 65532
+    type: directory
+    # Wide permissions required for running with tmpfs. Seems to be related to Docker bug https://github.com/moby/moby/issues/40881
+    # https://github.com/docker/for-linux/issues/138
+    permissions: 511 # 0777
+    recursive: false
+  # The pid path was switched from /var/run/nginx.pid to /run/nginx.pid here
+  # https://github.com/wolfi-dev/os/pull/62917
+  - path: /run
+    uid: 65532
+    gid: 65532
+    type: directory
+    permissions: 511 # 0777
+    recursive: false
+
+archs:
+  - x86_64
+  - aarch64

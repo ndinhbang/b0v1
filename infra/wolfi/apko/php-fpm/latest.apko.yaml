@@ -3,8 +3,8 @@
 # https://github.com/wolfi-dev/os/blob/main/php-8.4.yaml
 # https://images.chainguard.dev/directory/image/php/specifications
 # https://images.chainguard.dev/directory/image/php/sbom
-# https://github.com/chainguard-images/images/blob/main/images/php/config/main.tf
-# https://github.com/chainguard-images/images/blob/main/images/php/main.tf
+# https://github.com/chainguard-images/images/blob/main/images/php/config/fpm/main.tf
+# https://github.com/chainguard-images/images/blob/main/images/php/fpm.tf
 contents:
   repositories:
     - https://packages.wolfi.dev/os
@@ -17,6 +17,7 @@ contents:
     - ca-certificates
     - curl
     - php
+    - php-fpm
     - php-curl
     - php-openssl
     - php-mbstring
@@ -44,25 +45,20 @@ contents:
     # - php-zip
     # - php-zstd
     # - php-xdebug
-    # dev
-    - composer
-    - apk-tools
-    - busybox
-    - bash
-    - git
-    - wget
-
-entrypoint:
-  command: /bin/php
 
 environment:
   PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
   SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
 
+entrypoint:
+  type: service-bundle
+  services:
+    php-fpm: /usr/bin/php-fpm
+
 paths:
   - path: /app
     type: directory
-    permissions: 511 # 0777
+    permissions: 493 # 0755
     uid: 65532
     gid: 65532
 

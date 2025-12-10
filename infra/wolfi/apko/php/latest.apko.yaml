@@ -44,13 +44,6 @@ contents:
     # - php-zip
     # - php-zstd
     # - php-xdebug
-    # dev
-    - composer
-    - apk-tools
-    - busybox
-    - bash
-    - git
-    - wget
 
 entrypoint:
   command: /bin/php
@@ -62,7 +55,7 @@ environment:
 paths:
   - path: /app
     type: directory
-    permissions: 511 # 0777
+    permissions: 493 # 0755
     uid: 65532
     gid: 65532
 

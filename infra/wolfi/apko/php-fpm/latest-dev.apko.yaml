@@ -28,6 +28,23 @@ contents:
     - php-pdo_sqlite
     - php-sodium
     - php-phar
+    # Additional extensions
+    # - php-apache
+    # - php-apcu
+    # - php-gd
+    # - php-grpc
+    # - php-igbinary
+    # - php-intl
+    # - php-opcache
+    # - php-opentelemetry
+    # - php-pcntl
+    # - php-pdo_pgsql
+    # - php-protobuf
+    # - php-redis
+    # - php-swoole
+    # - php-zip
+    # - php-zstd
+    # - php-xdebug
     # dev
     - apk-tools
     - busybox
