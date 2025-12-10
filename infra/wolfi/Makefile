@@ -128,10 +128,13 @@ show-packages:
 load:
 	docker load -i $(PWD)/apko/$(name)/$(tag)/image-$(arch).tar
 
+.PHONY: run
+run:
+	docker run -it --rm $(name):$(tag)-$(arch)
+
 # Run tests for the built image
 .PHONY: test
 test:
-	# Execute the test script for the built image
 	./apko/$(name)/tests/run.sh $(name):$(tag)-$(arch)
 
 # Perform the full build process: lock, image, and load
@@ -147,7 +150,6 @@ publish:
 # Combine multiple architecture images into a multi-arch image
 .PHONY: multiarch
 multiarch:
-	# Create and push a multi-architecture image manifest
 	docker manifest create $(registry)/$(name):$(tag) \
 		--amend $(registry)/$(name):$(tag)-amd64 \
 		--amend $(registry)/$(name):$(tag)-arm64 && \
@@ -156,5 +158,4 @@ multiarch:
 # Show the filesystem contents of the built image
 .PHONY: show-fs
 show-fs:
-	# Export the image and display its filesystem contents
 	crane export $(registry)/$(name):$(tag)-$(arch) - | tar -tvf -
