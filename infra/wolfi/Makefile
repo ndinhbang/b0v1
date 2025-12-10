@@ -11,10 +11,11 @@
 #   make load-image    # Load the built laravel image into Docker
 #   make test-image    # Test the built laravel image
 
-WOLFI_IMAGE=cgr.dev/chainguard/wolfi-base@sha256:42012fa027adc864efbb7cf68d9fc575ea45fe1b9fb0d16602e00438ce3901b1
-APKO_IMAGE=cgr.dev/chainguard/apko@sha256:bf25bc53dec335d5dd30f8375a8b7a89b75074638e15e3399e58e9d1228e8eed
-MELANGE_IMAGE=cgr.dev/chainguard/melange@sha256:3b276bcb5683bde86f95a7eebc6d7bc9ed1f71a9f8813f22b991ad0ed345133f
+WOLFI_IMAGE=cgr.dev/chainguard/wolfi-base@sha256:0d8efc73b806c780206b69d62e1b8cb10e9e2eefa0e4452db81b9fa00b1a5175
+APKO_IMAGE=cgr.dev/chainguard/apko@sha256:04d478ff9e94a537a5eaddfdff00735a5e797fb46e201fc015355bdaaa77326f
+MELANGE_IMAGE=cgr.dev/chainguard/melange@sha256:ab0e53ec9bb1f953141cc699ee9ae19741ff2d52397acf3e337f5998001c856b
 SDK_IMAGE=ghcr.io/wolfi-dev/sdk@sha256:5866033aff23f88676d20ced03a4113f24d5957bff60e7e629f54563094c5dfd
+CRANE_IMAGE=cgr.dev/chainguard/crane@sha256:19921119ab4aa92e341cee3070039759c6e627913a3de51eb286144e01cad311
 
 # Default variables (can be overridden by user)
 tag ?= latest-dev
@@ -22,12 +23,19 @@ name ?= laravel
 cache_dir ?= $(PWD)/.cache
 log_level ?= debug
 # Detect host architecture (amd64, arm64, etc.)
-# Ex: make arch=x86_64,aarch64)
-arch ?= $(shell uname -m)
+# Ex: make arch=amd64,arm64)
+arch ?= amd64
+registry ?= ghcr.io/ndinhbang
+
+# Clean up Docker system and volumes to free up space. Be careful when using this!
+.PHONY: clean
+clean:
+	docker system prune -af && \
+	docker volume prune -af
 
 .PHONY: digests
 digests:
-	docker images --digests > docker-images.txt
+	docker images --digests > digests.txt
 
 .PHONY: wolfi
 wolfi:
@@ -44,6 +52,10 @@ melange:
 .PHONY: sdk
 sdk:
 	docker run --rm --pull=always ghcr.io/wolfi-dev/sdk
+
+.PHONY: crane
+crane:
+	docker run --rm --pull=always cgr.dev/chainguard/crane version
 
 .PHONY: laravel
 laravel:
@@ -107,7 +119,16 @@ load:
 
 .PHONY: test
 test:
-	docker run -it --rm $(name):$(tag)-amd64
+	docker run -it --rm $(name):$(tag)-$(arch)
 
 .PHONY: build
 build: lock image load
+
+.PHONY: publish
+publish:
+	docker tag $(name):$(tag)-$(arch) $(registry)/$(name):$(tag)
+	docker push $(registry)/$(name):$(tag)
+
+.PHONY: show-fs
+show-fs:
+	crane export $(registry)/$(name):$(tag) - | tar -tvf -

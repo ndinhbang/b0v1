@@ -1,0 +1,9 @@
+REPOSITORY                      TAG            DIGEST                                                                    IMAGE ID       CREATED         SIZE
+node                            latest-amd64   sha256:d589d65f54b3381903c2b09db83bc5cf935a50b481e8dd45cf6a0558573aee34   d589d65f54b3   12 hours ago    203MB
+cgr.dev/chainguard/wolfi-base   latest         sha256:0d8efc73b806c780206b69d62e1b8cb10e9e2eefa0e4452db81b9fa00b1a5175   0d8efc73b806   12 hours ago    23.9MB
+cgr.dev/chainguard/nginx        latest-dev     sha256:c472837833b796a1e09cd2d6a8293c430b5fcc9586d65c37adbc496dd40273f6   c472837833b7   36 hours ago    84MB
+cgr.dev/chainguard/laravel      latest-dev     sha256:eaee363b6c3f095e6e33b3c76819ceb90da73de8a2bc3fc7dc6036e072fe650f   eaee363b6c3f   36 hours ago    153MB
+cgr.dev/chainguard/crane        latest         sha256:19921119ab4aa92e341cee3070039759c6e627913a3de51eb286144e01cad311   19921119ab4a   5 days ago      18.9MB
+cgr.dev/chainguard/apko         latest         sha256:6c6900f5d1530049536b8afeb016e4c2f6e220bb8e3302ea2036f9a651af9928   6c6900f5d153   6 days ago      42.9MB
+registry.dagger.io/engine       v0.19.7        sha256:78a06b2a4f1dcf1541e0f09f55200af84c2541f7b04d1c8ab7fe57319934d75f   78a06b2a4f1d   2 weeks ago     982MB
+cgr.dev/chainguard/melange      latest         sha256:28ba289cfb19be30c391307cd90ea13f4c2bab9be193ffb99b46df14c90f04ff   28ba289cfb19   10 months ago   85.5MB

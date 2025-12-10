@@ -50,14 +50,6 @@ contents:
     # - php-zip
     # - php-zstd
     # - php-xdebug
-    #  dev
-    - composer
-    - php-xmlwriter
-    - apk-tools
-    - busybox
-    - bash
-    - git
-    - wget
 
 entrypoint:
   type: service-bundle
