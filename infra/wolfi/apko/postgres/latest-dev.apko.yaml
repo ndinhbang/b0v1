@@ -23,7 +23,6 @@ contents:
     - pgaudit-18
     # dev
     - apk-tools
-    - busybox
     - bash
     - git
     - wget
