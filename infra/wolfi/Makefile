@@ -25,7 +25,9 @@ log_level ?= debug
 # Detect host architecture (amd64, arm64, etc.)
 # Ex: make arch=amd64,arm64)
 arch ?= amd64
-registry ?= ghcr.io/ndinhbang
+# Docker registry to push images to (default: Docker Hub)
+# registry ?= ghcr.io/ndinhbang
+registry ?= docker.io/ndinhbang
 
 # Clean up Docker system and volumes to free up space. Be careful when using this!
 .PHONY: clean
@@ -126,9 +128,17 @@ build: lock image load
 
 .PHONY: publish
 publish:
-	docker tag $(name):$(tag)-$(arch) $(registry)/$(name):$(tag)
-	docker push $(registry)/$(name):$(tag)
+	docker tag $(name):$(tag)-$(arch) $(registry)/$(name):$(tag)-$(arch)
+	docker push $(registry)/$(name):$(tag)-$(arch)
+
+# Combine multiple architecture images into a multi-arch image
+.PHONY: multiarch
+multiarch:
+	docker manifest create $(registry)/$(name):$(tag) \
+		--amend $(registry)/$(name):$(tag)-amd64 \
+		--amend $(registry)/$(name):$(tag)-arm64 && \
+	docker manifest push $(registry)/$(name):$(tag)
 
 .PHONY: show-fs
 show-fs:
-	crane export $(registry)/$(name):$(tag) - | tar -tvf -
+	crane export $(registry)/$(name):$(tag)-$(arch) - | tar -tvf -
