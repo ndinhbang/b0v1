@@ -49,3 +49,4 @@ sbom*
 *.tar
 *.tar.gz
 *.lock.json
+.digests

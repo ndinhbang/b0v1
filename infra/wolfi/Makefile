@@ -20,8 +20,12 @@ tag ?= latest-dev
 name ?= laravel
 cache_dir ?= $(PWD)/.cache
 log_level ?= debug
-arch ?= amd64
-registry ?= docker.io/ndinhbang
+# Detect host architecture (amd64, arm64, etc.)
+# Ex: make arch=amd64,arm64)
+arch ?= $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+# Docker registry to push images to (default: Docker Hub)
+registry ?= ghcr.io/ndinhbang
+registry_backup ?= docker.io/ndinhbang
 
 # --- TARGETS ---
 
@@ -78,7 +82,6 @@ lock:
 
 	mkdir -p $(PWD)/apko/$(name)/$(tag) && \
 	apko lock $(PWD)/apko/$(name)/$(tag).apko.yaml \
-		--arch $(arch) \
 		--log-level $(log_level) \
 		--workdir $(PWD)/apko/$(name) \
 		--output $(PWD)/apko/$(name)/$(tag)/apko.lock.json \
@@ -100,8 +103,7 @@ image:
 	$(eval cache := 0)
 
 	mkdir -p $(PWD)/apko/$(name)/$(tag) && \
-	apko build $(PWD)/apko/$(name)/$(tag).apko.yaml $(name):$(tag) $(PWD)/apko/$(name)/$(tag)/image-$(arch).tar \
-		--arch $(arch) \
+	apko build $(PWD)/apko/$(name)/$(tag).apko.yaml $(registry)/$(name):$(tag) $(PWD)/apko/$(name)/$(tag)/image.tar \
 		--log-level $(log_level) \
 		--workdir $(PWD)/apko/$(name) \
 		--sbom-path $(PWD)/apko/$(name)/$(tag) \
@@ -126,16 +128,16 @@ show-packages:
 # Load the built image tarball into Docker
 .PHONY: load
 load:
-	docker load -i $(PWD)/apko/$(name)/$(tag)/image-$(arch).tar
+	docker load -i $(PWD)/apko/$(name)/$(tag)/image.tar
 
 .PHONY: run
 run:
-	docker run -it --rm $(name):$(tag)-$(arch)
+	docker run -it --rm $(registry)/$(name):$(tag)
 
 # Run tests for the built image
-.PHONY: test
-test:
-	./apko/$(name)/tests/run.sh $(name):$(tag)-$(arch)
+.PHONY: run
+run:
+	./apko/$(name)/tests/run.sh $(registry)/$(name):$(tag)
 
 # Perform the full build process: lock, image, and load
 .PHONY: build
@@ -143,19 +145,20 @@ build: lock image load
 
 # Tag and push the image to the Docker registry
 .PHONY: publish
-publish:
-	docker tag $(name):$(tag)-$(arch) $(registry)/$(name):$(tag)-$(arch)
-	docker push $(registry)/$(name):$(tag)-$(arch)
+publish: lock
+	$(eval local := 0)
+	$(eval offline := 0)
 
-# Combine multiple architecture images into a multi-arch image
-.PHONY: multiarch
-multiarch:
-	docker manifest create $(registry)/$(name):$(tag) \
-		--amend $(registry)/$(name):$(tag)-amd64 \
-		--amend $(registry)/$(name):$(tag)-arm64 && \
-	docker manifest push $(registry)/$(name):$(tag)
+	apko publish $(PWD)/apko/$(name)/$(tag).apko.yaml $(registry)/$(name):$(tag) $(registry_backup)/$(name):$(tag) \
+		--workdir $(PWD)/apko/$(name) \
+		--log-level $(log_level) \
+		--lockfile $(PWD)/apko/$(name)/$(tag)/apko.lock.json \
+		--image-refs $(PWD)/apko/$(name)/$(tag)/.digests \
+		$(if $(filter 1,$(cache)),--cache-dir $(cache_dir),) \
+		$(if $(filter 1,$(offline)),--offline,) \
+		$(if $(filter 1,$(local)),--local,) ; \
 
 # Show the filesystem contents of the built image
 .PHONY: show-fs
 show-fs:
-	crane export $(registry)/$(name):$(tag)-$(arch) - | tar -tvf -
+	crane export $(registry)/$(name):$(tag) - | tar -tvf -

@@ -11,6 +11,7 @@ https://packages.wolfi.dev
 https://packages.wolfi.dev/os/aarch64/APKINDEX.tar.gz
 https://packages.wolfi.dev/os/x86_64/APKINDEX.tar.gz
 https://github.com/chainguard-dev/melange/tree/main/pkg/build/pipelines
+https://github.com/chainguard-dev/melange?tab=readme-ov-file#default-substitutions
 https://github.com/chainguard-dev/melange/blob/main/README.md
 https://github.com/chainguard-dev/melange/blob/main/docs/BUILD-PROCESS.md
 https://github.com/chainguard-dev/melange/blob/main/docs/BUILD-CACHE.md
@@ -18,3 +19,14 @@ https://github.com/chainguard-dev/melange/blob/main/docs/BUILD-FILE.md
 https://github.com/chainguard-dev/melange/blob/main/docs/VAR-TRANSFORMS.md
 https://github.com/chainguard-dev/melange/blob/main/docs/md/melange.md
 https://github.com/wolfi-dev/tools
+https://github.com/chainguard-dev/actions
+https://github.com/jonjohnsonjr/apkrane
+
+Fetch the open source code related to Chainguard packages and images, as defined in the SBOMs
+https://github.com/chainguard-dev/chainguard-source
+https://github.com/chainguard-dev/terraform-provider-oci
+https://github.com/chainguard-dev/incert
+https://github.com/chainguard-dev/terraform-publisher-apko
+https://github.com/chainguard-dev/terraform-provider-imagetest
+https://github.com/chainguard-dev/terraform-provider-cosign
+https://github.com/chainguard-dev/cookbook
