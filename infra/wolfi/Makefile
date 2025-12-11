@@ -135,8 +135,8 @@ run:
 	docker run -it --rm $(registry)/$(name):$(tag)
 
 # Run tests for the built image
-.PHONY: run
-run:
+.PHONY: test
+test:
 	./apko/$(name)/tests/run.sh $(registry)/$(name):$(tag)
 
 # Perform the full build process: lock, image, and load
