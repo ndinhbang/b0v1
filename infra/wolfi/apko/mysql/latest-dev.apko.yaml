@@ -14,6 +14,7 @@ contents:
     - ca-certificates-bundle
     - wolfi-baselayout
     - glibc-locale-posix
+    - tzdata
     - mysql-9.5
     - mysql-9.5-dev
     - mysql-9.5-oci-entrypoint
