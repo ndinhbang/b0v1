@@ -1,0 +1,59 @@
+# https://github.com/wolfi-dev/os/blob/main/mariadb-12.1.yaml
+# https://github.com/chainguard-images/images/blob/main/images/mariadb/config/main.tf
+# https://images.chainguard.dev/directory/image/mariadb/specifications
+# https://images.chainguard.dev/directory/image/mariadb/sbom
+contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+  packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
+    - mariadb
+    - mariadb-client
+    - mariadb-oci-entrypoint
+    - tzdata
+
+accounts:
+  groups:
+    - groupname: mysql
+      gid: 65532
+  users:
+    - username: mysql
+      uid: 65532
+  run-as: 65532
+
+entrypoint:
+  command: /usr/local/bin/docker-entrypoint.sh mariadbd
+
+environment:
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+
+paths:
+  - path: /var/lib/mysql
+    type: directory
+    permissions: 511 # 0777
+    uid: 65532
+    gid: 65532
+  - path: /var/tmp
+    type: directory
+    permissions: 511 # 0777
+    uid: 65532
+    gid: 65532
+  - path: /run/mysqld
+    type: directory
+    permissions: 511 # 0777
+    uid: 65532
+    gid: 65532
+  - path: /docker-entrypoint-initdb.d
+    type: directory
+    permissions: 511 # 0777
+    uid: 65532
+    gid: 65532
+
+archs:
+  - x86_64
+  - aarch64

@@ -161,7 +161,8 @@ publish: lock
 # Show the filesystem contents of the built image
 .PHONY: show-fs
 show-fs:
-	crane export $(registry)/$(name):$(tag) - | tar -tvf -
+	$(eval image := $(registry)/$(name):$(tag))
+	crane export $(image) - | tar -tvf -
 
 .PHONY: dive
 dive:

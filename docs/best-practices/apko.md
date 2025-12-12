@@ -30,3 +30,4 @@ https://github.com/chainguard-dev/terraform-publisher-apko
 https://github.com/chainguard-dev/terraform-provider-imagetest
 https://github.com/chainguard-dev/terraform-provider-cosign
 https://github.com/chainguard-dev/cookbook
+https://apk.cgr.dev/chainguard/jwks
