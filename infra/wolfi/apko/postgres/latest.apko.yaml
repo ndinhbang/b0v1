@@ -2,17 +2,11 @@
 # https://images.chainguard.dev/directory/image/postgres/specifications
 # https://images.chainguard.dev/directory/image/postgres/sbom
 # https://github.com/wolfi-dev/os/blob/main/postgresql-18.yaml
-# https://github.com/docker-library/postgres/blob/master/18/alpine3.23/Dockerfile
-# https://github.com/docker-library/postgres/blob/master/18/alpine3.23/docker-entrypoint.sh
-# https://cwrap.org/nss_wrapper.html
-# https://raw.githubusercontent.com/wolfi-dev/os/4d42d7f64c24b5013f702d5d5a6820e357e5d6d2/nss_wrapper.yaml
 contents:
   repositories:
     - https://packages.wolfi.dev/os
-    - "@local ../../melange/packages"
   keyring:
     - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
-    - ../../melange/local-melange.rsa.pub
   packages:
     - ca-certificates-bundle
     - wolfi-baselayout
@@ -28,13 +22,7 @@ contents:
     - libpq
     - pgaudit
     - perl
-    - nss_wrapper@local
-    # - nss_wrapper # only require when running as non-root user
-    # dev
-    - apk-tools
-    - bash
-    - git
-    - wget
+    # - nss_wrapper
 
 environment:
   LANG: en_US.UTF-8
