@@ -162,3 +162,11 @@ publish: lock
 .PHONY: show-fs
 show-fs:
 	crane export $(registry)/$(name):$(tag) - | tar -tvf -
+
+.PHONY: dive
+dive:
+	$(eval image := $(registry)/$(name):$(tag))
+	docker run --rm -it \
+  		-v /var/run/docker.sock:/var/run/docker.sock \
+		--group-add $(shell getent group docker | cut -d: -f3) \
+  		cgr.dev/chainguard/dive:latest $(image)
