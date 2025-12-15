@@ -18,13 +18,6 @@ contents:
     - mysql-9.5
     - mysql-9.5-oci-entrypoint
     - mysql-9.5-oci-entrypoint-compat
-    # dev
-    - mysql-9.5-dev
-    - apk-tools
-    - busybox
-    - bash
-    - git
-    - wget
 
 accounts:
   groups:

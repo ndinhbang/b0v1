@@ -20,7 +20,7 @@ This installs the QEMU binaries and registers them with [`binfmt_misc`](https://
 To check if QEMU is installed correctly, you can run:
 
 ```
-ls /proc/sys/fs/binfmt_misc/
+ls -al /proc/sys/fs/binfmt_misc/
 ```
 
 Expected output should include entries like `qemu-aarch64`, `qemu-arm`, `qemu-ppc64le`, etc.:
