@@ -1,3 +1,5 @@
+# https://cwrap.org/nss_wrapper.html
+# https://raw.githubusercontent.com/wolfi-dev/os/4d42d7f64c24b5013f702d5d5a6820e357e5d6d2/nss_wrapper.yaml
 package:
   name: nss_wrapper
   version: 1.1.16

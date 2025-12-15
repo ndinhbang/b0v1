@@ -1,7 +1,10 @@
-# https://github.com/chainguard-images/images/blob/main/images/python/config/main.tf
+# https://github.com/chainguard-images/images/blob/main/images/postgres/main.tf
+# https://github.com/chainguard-images/images/blob/main/images/postgres/config/main.tf
 # https://images.chainguard.dev/directory/image/postgres/specifications
 # https://images.chainguard.dev/directory/image/postgres/sbom
 # https://github.com/wolfi-dev/os/blob/main/postgresql-18.yaml
+# https://github.com/docker-library/postgres/blob/master/18/alpine3.23/Dockerfile
+# https://github.com/docker-library/postgres/blob/master/18/alpine3.23/docker-entrypoint.sh
 contents:
   repositories:
     - https://packages.wolfi.dev/os
@@ -11,10 +14,10 @@ contents:
     - ca-certificates-bundle
     - wolfi-baselayout
     - glibc-locale-posix
-    - posix-libc-utils
-    - glibc-locale-en
-    - busybox
-    - gosu
+    - posix-libc-utils # Needed to fetch locale
+    - glibc-locale-en # required for initdb entrypoint
+    - busybox # required for initdb entrypoint
+    - gosu # Needed by entrypoint
     - postgresql
     - postgresql-client
     - postgresql-oci-entrypoint
@@ -22,7 +25,7 @@ contents:
     - libpq
     - pgaudit
     - perl
-    # - nss_wrapper
+    # - nss_wrapper # https://access.redhat.com/articles/4859371
 
 environment:
   LANG: en_US.UTF-8

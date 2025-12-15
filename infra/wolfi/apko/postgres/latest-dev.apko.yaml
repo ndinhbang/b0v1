@@ -1,26 +1,23 @@
-# https://github.com/chainguard-images/images/blob/main/images/python/config/main.tf
+# https://github.com/chainguard-images/images/blob/main/images/postgres/main.tf
+# https://github.com/chainguard-images/images/blob/main/images/postgres/config/main.tf
 # https://images.chainguard.dev/directory/image/postgres/specifications
 # https://images.chainguard.dev/directory/image/postgres/sbom
 # https://github.com/wolfi-dev/os/blob/main/postgresql-18.yaml
 # https://github.com/docker-library/postgres/blob/master/18/alpine3.23/Dockerfile
 # https://github.com/docker-library/postgres/blob/master/18/alpine3.23/docker-entrypoint.sh
-# https://cwrap.org/nss_wrapper.html
-# https://raw.githubusercontent.com/wolfi-dev/os/4d42d7f64c24b5013f702d5d5a6820e357e5d6d2/nss_wrapper.yaml
 contents:
   repositories:
     - https://packages.wolfi.dev/os
-    - "@local ../../melange/packages"
   keyring:
     - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
-    - ../../melange/local-melange.rsa.pub
   packages:
     - ca-certificates-bundle
     - wolfi-baselayout
     - glibc-locale-posix
-    - posix-libc-utils
-    - glibc-locale-en
-    - busybox
-    - gosu
+    - posix-libc-utils # Needed to fetch locale
+    - glibc-locale-en # required for initdb entrypoint
+    - busybox # required for initdb entrypoint
+    - gosu # Needed by entrypoint
     - postgresql
     - postgresql-client
     - postgresql-oci-entrypoint
@@ -28,8 +25,7 @@ contents:
     - libpq
     - pgaudit
     - perl
-    - nss_wrapper@local
-    # - nss_wrapper # only require when running as non-root user
+    # - nss_wrapper # https://access.redhat.com/articles/4859371
     # dev
     - apk-tools
     - bash
