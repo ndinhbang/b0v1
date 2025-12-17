@@ -1,0 +1,37 @@
+# https://images.chainguard.dev/directory/image/dragonfly/specifications
+# https://images.chainguard.dev/directory/image/dragonfly/sbom
+contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+    - https://packages.cgr.dev/extras
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+    - https://packages.cgr.dev/extras/chainguard-extras.rsa.pub
+  packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
+    - dragonfly
+    - dragonfly-oci-compat
+
+accounts:
+  groups:
+    - groupname: dfly
+      gid: 10000
+  users:
+    - username: dfly
+      uid: 10000
+      gid: 10000
+  run-as: 10000
+
+entrypoint:
+  command: /usr/bin/entrypoint.sh
+cmd: dragonfly --logtostderr
+
+environment:
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+
+archs:
+  - x86_64
+  - aarch64
