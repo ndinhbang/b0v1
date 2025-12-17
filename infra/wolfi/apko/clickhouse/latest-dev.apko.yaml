@@ -1,0 +1,79 @@
+# https://github.com/wolfi-dev/os/blob/main/clickhouse-25.11.yaml
+# https://images.chainguard.dev/directory/image/clickhouse/specifications
+# https://images.chainguard.dev/directory/image/clickhouse/sbom
+contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+  packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
+    - clickhouse
+    - clickhouse-compat
+    # dev
+    - apk-tools
+    - busybox
+    - bash
+    - git
+    - wget
+
+accounts:
+  groups:
+    - groupname: clickhouse
+      gid: 101
+    - groupname: clickhouse-bridge
+      gid: 999
+  users:
+    - username: clickhouse
+      uid: 101
+      gid: 101
+    - username: clickhouse-bridge
+      uid: 999
+      gid: 999
+  run-as: 101
+
+entrypoint:
+  command: /usr/bin/clickhouse
+cmd: help
+
+work-dir: /home/clickhouse
+
+environment:
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+  CLICKHOUSE_CONFIG: /etc/clickhouse-server/config.xml
+  CLICKHOUSE_DB: default
+  CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+  CLICKHOUSE_GID: "101"
+  CLICKHOUSE_UID: "101"
+  CLICKHOUSE_LOG: /var/log/clickhouse-server/clickhouse-server.log
+  CLICKHOUSE_PASSWORD: ""
+  CLICKHOUSE_USER: default
+
+paths:
+  - path: /var/lib/clickhouse
+    type: directory
+    permissions: 493 # 0755
+    uid: 101
+    gid: 101
+  - path: /var/log/clickhouse-server
+    type: directory
+    permissions: 493 # 0755
+    uid: 101
+    gid: 101
+  - path: /home/clickhouse
+    type: directory
+    permissions: 493 # 0755
+    uid: 101
+    gid: 101
+  - path: /docker-entrypoint-initdb.d
+    type: directory
+    permissions: 493 # 0755
+    uid: 101
+    gid: 101
+
+archs:
+  - x86_64
+  - aarch64

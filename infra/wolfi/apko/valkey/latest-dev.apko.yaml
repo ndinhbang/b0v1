@@ -1,0 +1,52 @@
+# https://github.com/wolfi-dev/os/blob/main/valkey-9.0.yaml
+# https://images.chainguard.dev/directory/image/valkey/specifications
+# https://images.chainguard.dev/directory/image/valkey/sbom
+contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+    - https://packages.cgr.dev/extras
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+    - https://packages.cgr.dev/extras/chainguard-extras.rsa.pub
+  packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
+    - busybox
+    - valkey
+    - valkey-cli
+    # dev
+    - apk-tools
+    - bash
+    - git
+    - wget
+
+accounts:
+  groups:
+    - groupname: valkey
+      gid: 65532
+  users:
+    - username: valkey
+      uid: 65532
+      gid: 65532
+  run-as: 65532
+
+entrypoint:
+  command: /usr/bin/valkey-server
+
+work-dir: /data
+
+environment:
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+
+paths:
+  - path: /data
+    type: directory
+    permissions: 493 # 0755
+    uid: 65532
+    gid: 65532
+
+archs:
+  - x86_64
+  - aarch64

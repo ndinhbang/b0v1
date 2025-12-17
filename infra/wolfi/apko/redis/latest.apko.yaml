@@ -1,0 +1,46 @@
+# https://images.chainguard.dev/directory/image/redis/specifications
+# https://images.chainguard.dev/directory/image/redis/sbom
+contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+    - https://packages.cgr.dev/extras
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+    - https://packages.cgr.dev/extras/chainguard-extras.rsa.pub
+  packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
+    - busybox
+    - redis
+    - redis-cli
+
+accounts:
+  groups:
+    - groupname: redis
+      gid: 65532
+  users:
+    - username: redis
+      uid: 65532
+      gid: 65532
+  run-as: 65532
+
+entrypoint:
+  command: /usr/bin/redis-server
+
+work-dir: /data
+
+environment:
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+
+paths:
+  - path: /data
+    type: directory
+    permissions: 493 # 0755
+    uid: 65532
+    gid: 65532
+
+archs:
+  - x86_64
+  - aarch64
