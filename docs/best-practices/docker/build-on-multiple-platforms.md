@@ -165,3 +165,5 @@ sudo systemctl status qemu-binfmt-register.service
 
 The status should show as `active (exited)`. Now, whenever you restart WSL (by running `wsl --shutdown` on Windows), the QEMU registration command will be executed automatically.
 
+## References
+- [Docker Documentation: Multi-platform builds](https://docs.docker.com/build/building/multi-platform/)
