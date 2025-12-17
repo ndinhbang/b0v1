@@ -80,20 +80,20 @@ nginx:
 lock:
 	$(eval cache := 0)
 
-	mkdir -p $(PWD)/apko/$(name)/$(tag) && \
-	apko lock $(PWD)/apko/$(name)/$(tag).apko.yaml \
+	mkdir -p $(PWD)/images/$(name)/$(tag) && \
+	apko lock $(PWD)/images/$(name)/$(tag).apko.yaml \
 		--log-level $(log_level) \
-		--workdir $(PWD)/apko/$(name) \
-		--output $(PWD)/apko/$(name)/$(tag)/apko.lock.json \
+		--workdir $(PWD)/images/$(name) \
+		--output $(PWD)/images/$(name)/$(tag)/apko.lock.json \
 		$(if $(filter 1,$(cache)),--cache-dir $(cache_dir),)
 
 # Build a minimal root filesystem using apko
 .PHONY: rootfs
 rootfs:
-	mkdir -p $(PWD)/apko/$(name)/$(tag) && \
-	apko build-minirootfs $(PWD)/apko/$(name)/$(tag).apko.yaml $(PWD)/apko/$(name)/$(tag)/minirootfs.tar.gz \
+	mkdir -p $(PWD)/images/$(name)/$(tag) && \
+	apko build-minirootfs $(PWD)/images/$(name)/$(tag).apko.yaml $(PWD)/images/$(name)/$(tag)/minirootfs.tar.gz \
 		--build-arch $(arch) \
-		--workdir $(PWD)/apko/$(name) \
+		--workdir $(PWD)/images/$(name) \
 		--log-level $(log_level)
 
 # Build a container image using apko
@@ -102,12 +102,12 @@ image:
 	$(eval offline := 0)
 	$(eval cache := 0)
 
-	mkdir -p $(PWD)/apko/$(name)/$(tag) && \
-	apko build $(PWD)/apko/$(name)/$(tag).apko.yaml $(registry)/$(name):$(tag) $(PWD)/apko/$(name)/$(tag)/image.tar \
+	mkdir -p $(PWD)/images/$(name)/$(tag) && \
+	apko build $(PWD)/images/$(name)/$(tag).apko.yaml $(registry)/$(name):$(tag) $(PWD)/images/$(name)/$(tag)/image.tar \
 		--log-level $(log_level) \
-		--workdir $(PWD)/apko/$(name) \
-		--sbom-path $(PWD)/apko/$(name)/$(tag) \
-		--lockfile $(PWD)/apko/$(name)/$(tag)/apko.lock.json \
+		--workdir $(PWD)/images/$(name) \
+		--sbom-path $(PWD)/images/$(name)/$(tag) \
+		--lockfile $(PWD)/images/$(name)/$(tag)/apko.lock.json \
 		$(if $(filter 1,$(cache)),--cache-dir $(cache_dir),) \
 		$(if $(filter 1,$(offline)),--offline,)
 
@@ -117,9 +117,9 @@ show-packages:
 	$(eval offline := 0)
 	$(eval cache := 0)
 
-	apko show-packages $(PWD)/apko/$(name)/$(tag).apko.yaml \
+	apko show-packages $(PWD)/images/$(name)/$(tag).apko.yaml \
 		--arch $(arch) \
-		--workdir $(PWD)/apko/$(name) \
+		--workdir $(PWD)/images/$(name) \
 		--log-level $(log_level) \
 		--format "{{ .Name }}={{ .Version }}" \
 		$(if $(filter 1,$(cache)),--cache-dir $(cache_dir),) \
@@ -128,7 +128,7 @@ show-packages:
 # Load the built image tarball into Docker
 .PHONY: load
 load:
-	docker load -i $(PWD)/apko/$(name)/$(tag)/image.tar
+	docker load -i $(PWD)/images/$(name)/$(tag)/image.tar
 
 .PHONY: run
 run:
@@ -137,7 +137,7 @@ run:
 # Run tests for the built image
 .PHONY: test
 test:
-	./apko/$(name)/tests/run.sh $(registry)/$(name):$(tag)
+	./images/$(name)/tests/run.sh $(registry)/$(name):$(tag)
 
 # Perform the full build process: lock, image, and load
 .PHONY: build
@@ -149,11 +149,11 @@ publish: lock
 	$(eval local := 0)
 	$(eval offline := 0)
 
-	apko publish $(PWD)/apko/$(name)/$(tag).apko.yaml $(registry)/$(name):$(tag) $(registry_backup)/$(name):$(tag) \
-		--workdir $(PWD)/apko/$(name) \
+	apko publish $(PWD)/images/$(name)/$(tag).apko.yaml $(registry)/$(name):$(tag) $(registry_backup)/$(name):$(tag) \
+		--workdir $(PWD)/images/$(name) \
 		--log-level $(log_level) \
-		--lockfile $(PWD)/apko/$(name)/$(tag)/apko.lock.json \
-		--image-refs $(PWD)/apko/$(name)/$(tag)/.digests \
+		--lockfile $(PWD)/images/$(name)/$(tag)/apko.lock.json \
+		--image-refs $(PWD)/images/$(name)/$(tag)/.digests \
 		$(if $(filter 1,$(cache)),--cache-dir $(cache_dir),) \
 		$(if $(filter 1,$(offline)),--offline,) \
 		$(if $(filter 1,$(local)),--local,) ; \
