@@ -10,10 +10,10 @@ contents:
     - ca-certificates-bundle
     - wolfi-baselayout
     - glibc-locale-posix
-    - busybox
     - memcached
     # dev
     - apk-tools
+    - busybox
     - bash
     - git
     - wget

@@ -10,7 +10,6 @@ contents:
     - ca-certificates-bundle
     - wolfi-baselayout
     - glibc-locale-posix
-    - busybox
     - memcached
 
 accounts:
