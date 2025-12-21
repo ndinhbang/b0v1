@@ -171,3 +171,43 @@ dive:
   		-v /var/run/docker.sock:/var/run/docker.sock \
 		--group-add $(shell getent group docker | cut -d: -f3) \
   		cgr.dev/chainguard/dive:latest $(image)
+
+# --- MELANGE PACKAGE BUILDING ---
+ifeq (${TMPDIR}, )
+    CACHEDIR = /tmp/melange-cache
+else
+    CACHEDIR = ${TMPDIR}/melange-cache
+endif
+
+.PHONY: cache
+cache:
+	mkdir -p ${CACHEDIR}
+
+# Get list of all package YAML files
+yamls := $(wildcard $(shell pwd)/os/*.yaml)
+# Extract package names from YAML filenames: /home/user/project/os/app1.yaml -> app1
+pkgs := $(subst .yaml,,$(notdir $(yamls)))
+# Define targets for building each package
+pkg_targets = $(foreach name,$(pkgs),package/$(name))
+
+.PHONY: $(pkg_targets)
+$(pkg_targets): package/%: cache
+	$(eval yamlfile := $(shell pwd)/os/$*.yaml)
+	$(eval pkgver := $(shell melange package-version $(yamlfile)))
+	@printf "Building package $* with version $(pkgver) from file $(yamlfile)\n"
+	$(MAKE) yamlfile=$(yamlfile) pkgname=$* packages/$(ARCH)/$(pkgver).apk
+
+packages/$(ARCH)/%.apk: $(KEY) $(QEMU_KERNEL_DEP) $(yamlfile)
+	@[ -n "$(pkgname)" ] || { echo "$@: pkgname is not set"; exit 1; }
+	@[ -n "$(yamlfile)" ] || { echo "$@: yamlfile is not set"; exit 1; }
+	mkdir -p  $(shell pwd)/os/$(pkgname)
+	melange build $(yamlfile) \
+		--source-dir $(shell pwd)/os/$(pkgname) \
+		--repository-append $(shell pwd)/os/packages \
+		--keyring-append local-melange.rsa.pub \
+		--signing-key local-melange.rsa \
+		--arch amd64,aarch64 \
+		--log-level debug \
+		--cache-dir ${CACHEDIR} \
+		-r https://packages.wolfi.dev/os \
+		-k https://packages.wolfi.dev/os/wolfi-signing.rsa.pub \
