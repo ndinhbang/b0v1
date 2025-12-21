@@ -4,9 +4,9 @@ ifeq (${ARCH}, arm64)
 	ARCH = aarch64
 endif
 ifeq (${TMPDIR}, )
-        CACHEDIR = /tmp/melange-cache
+    CACHEDIR = /tmp/melange-cache
 else
-        CACHEDIR = ${TMPDIR}/melange-cache
+    CACHEDIR = ${TMPDIR}/melange-cache
 endif
 TARGETDIR = packages/${ARCH}
 
@@ -14,7 +14,7 @@ MELANGE ?= $(shell which melange)
 WOLFICTL ?= $(shell which wolfictl)
 KEY ?= local-melange.rsa
 REPO ?= $(shell pwd)/packages
-QEMU_KERNEL_REPO := https://apk.cgr.dev/chainguard-private/
+# QEMU_KERNEL_REPO := https://apk.cgr.dev/chainguard-private/
 
 # MELANGE_RUNNER ?= qemu
 # MELANGE_OPTS += --runner=${MELANGE_RUNNER}
@@ -28,13 +28,13 @@ QEMU_KERNEL_REPO := https://apk.cgr.dev/chainguard-private/
 MELANGE_OPTS += --repository-append ${REPO}
 MELANGE_OPTS += --keyring-append ${KEY}.pub
 MELANGE_OPTS += --signing-key ${KEY}
-MELANGE_OPTS += --arch amd64,aarch64
-# MELANGE_OPTS += --env-file build-${ARCH}.env
-# MELANGE_OPTS += --namespace wolfi
-# MELANGE_OPTS += --license 'Apache-2.0'
-# MELANGE_OPTS += --git-repo-url 'https://github.com/wolfi-dev/os'
+MELANGE_OPTS += --arch ${ARCH}
+MELANGE_OPTS += --env-file build-${ARCH}.env
+MELANGE_OPTS += --namespace wolfi
+MELANGE_OPTS += --license 'Apache-2.0'
+MELANGE_OPTS += --git-repo-url 'https://github.com/wolfi-dev/os'
 MELANGE_OPTS += --cache-dir ${CACHEDIR}
-# MELANGE_OPTS += --pipeline-dir ./pipelines/
+MELANGE_OPTS += --pipeline-dir ./pipelines/
 MELANGE_OPTS += ${MELANGE_EXTRA_OPTS}
 
 # Enter interactive mode on failure for debug
@@ -68,11 +68,11 @@ WOLFI_REPO ?= https://packages.wolfi.dev/os
 WOLFI_KEY ?= https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
 BOOTSTRAP ?= no
 
-# SOURCE_DATE_EPOCH := $(shell git --no-pager log -1 --pretty=%ct || echo no-git)
-# ifeq ($(SOURCE_DATE_EPOCH),no-git)
-# $(error setting SOURCE_DATE_EPOCH failed - $(SOURCE_DATE_EPOCH))
-# endif
-# export SOURCE_DATE_EPOCH
+SOURCE_DATE_EPOCH := $(shell git --no-pager log -1 --pretty=%ct || echo no-git)
+ifeq ($(SOURCE_DATE_EPOCH),no-git)
+$(error setting SOURCE_DATE_EPOCH failed - $(SOURCE_DATE_EPOCH))
+endif
+export SOURCE_DATE_EPOCH
 
 DOCKER_PLATFORM_ARG := $(shell \
   case $(ARCH) in \
@@ -107,46 +107,46 @@ clean:
 clean-cache:
 	rm -rf ${CACHEDIR}
 
-${CACHEDIR}/.libraries_token.txt: cache
-	tmpf=$(shell mktemp); \
-	chainctl auth login --audience libraries.cgr.dev; \
-	chainctl auth token --audience libraries.cgr.dev > $${tmpf}; \
-	mv $${tmpf} ${CACHEDIR}/.libraries_token.txt
+# ${CACHEDIR}/.libraries_token.txt: cache
+# 	tmpf=$(shell mktemp); \
+# 	chainctl auth login --audience libraries.cgr.dev; \
+# 	chainctl auth token --audience libraries.cgr.dev > $${tmpf}; \
+# 	mv $${tmpf} ${CACHEDIR}/.libraries_token.txt
 
-.PHONY: lib-token
-lib-token: ${CACHEDIR}/.libraries_token.txt
+# .PHONY: lib-token
+# lib-token: ${CACHEDIR}/.libraries_token.txt
 
-.PHONY: fetch-kernel
-fetch-kernel:
-	rm -rf kernel/$(ARCH)
-	$(MAKE) kernel/$(ARCH)/vmlinuz
+# .PHONY: fetch-kernel
+# fetch-kernel:
+# 	rm -rf kernel/$(ARCH)
+# 	$(MAKE) kernel/$(ARCH)/vmlinuz
 
-kernel/%/APKINDEX.tar.gz:
-	@$(call authget,apk.cgr.dev,$@,$(QEMU_KERNEL_REPO)/$(ARCH)/APKINDEX.tar.gz)
+# kernel/%/APKINDEX.tar.gz:
+# 	@$(call authget,apk.cgr.dev,$@,$(QEMU_KERNEL_REPO)/$(ARCH)/APKINDEX.tar.gz)
 
-kernel/%/APKINDEX: kernel/%/APKINDEX.tar.gz
-	tar -x -C kernel --to-stdout -f $< APKINDEX > $@.tmp.$$$$ && mv $@.tmp.$$$$ $@
-	touch $@
+# kernel/%/APKINDEX: kernel/%/APKINDEX.tar.gz
+# 	tar -x -C kernel --to-stdout -f $< APKINDEX > $@.tmp.$$$$ && mv $@.tmp.$$$$ $@
+# 	touch $@
 
-kernel/%/chosen: kernel/%/APKINDEX
-	# Extract lines with 'P:linux-qemu-generic' and the following line that contains the version
-	# This approach is compatible with both GNU and BSD sed
-	awk '/^P:linux-qemu-generic$$/ {print; getline; print}' $< > kernel/$*/available
-	grep '^V:' kernel/$*/available | sed 's/V://' | \
-	  sort -V | tail -n1 > $@.tmp
-	# Sanity check that this looks like an apk version
-	grep -E '^([0-9]+\.)+[0-9]+-r[0-9]+$$' $@.tmp
-	mv $@.tmp $@
+# kernel/%/chosen: kernel/%/APKINDEX
+# 	# Extract lines with 'P:linux-qemu-generic' and the following line that contains the version
+# 	# This approach is compatible with both GNU and BSD sed
+# 	awk '/^P:linux-qemu-generic$$/ {print; getline; print}' $< > kernel/$*/available
+# 	grep '^V:' kernel/$*/available | sed 's/V://' | \
+# 	  sort -V | tail -n1 > $@.tmp
+# 	# Sanity check that this looks like an apk version
+# 	grep -E '^([0-9]+\.)+[0-9]+-r[0-9]+$$' $@.tmp
+# 	mv $@.tmp $@
 
-kernel/%/linux.apk: kernel/%/chosen
-	@$(call authget,apk.cgr.dev,$@,$(QEMU_KERNEL_REPO)/$*/linux-qemu-generic-$(shell cat kernel/$*/chosen).apk)
+# kernel/%/linux.apk: kernel/%/chosen
+# 	@$(call authget,apk.cgr.dev,$@,$(QEMU_KERNEL_REPO)/$*/linux-qemu-generic-$(shell cat kernel/$*/chosen).apk)
 
-kernel/%/vmlinuz: kernel/%/linux.apk
-	tmpd=kernel/.$$$$ && mkdir -p $$tmpd $(dir $@) && \
-		tar -x -C $$tmpd -f $< boot/ 2> /dev/null && \
-		[ -f $$tmpd/boot/vmlinuz ] && mv $$tmpd/boot/* $(dir $@) && \
-		rc=$$?; rm -Rf $$tmpd; exit $$rc
-	touch $@
+# kernel/%/vmlinuz: kernel/%/linux.apk
+# 	tmpd=kernel/.$$$$ && mkdir -p $$tmpd $(dir $@) && \
+# 		tar -x -C $$tmpd -f $< boot/ 2> /dev/null && \
+# 		[ -f $$tmpd/boot/vmlinuz ] && mv $$tmpd/boot/* $(dir $@) && \
+# 		rc=$$?; rm -Rf $$tmpd; exit $$rc
+# 	touch $@
 
 yamls := $(wildcard *.yaml)
 pkgs := $(subst .yaml,,$(yamls))
@@ -212,7 +212,10 @@ dev-container:
 	docker run $(DOCKER_PLATFORM_ARG) --pull=always --privileged --rm -it \
 		--entrypoint="/bin/bash" \
 	    -v "${PWD}:${PWD}" \
+		-v /tmp:/tmp \
+		-v /var/run/docker.sock:/var/run/docker.sock \
 	    -w "${PWD}" \
+	    -e SOURCE_DATE_EPOCH=$(SOURCE_DATE_EPOCH) \
 	    -e HTTP_AUTH \
 	    ghcr.io/wolfi-dev/sdk:latest -il
 
@@ -304,9 +307,10 @@ check-bootstrap:
 		-k ${BOOTSTRAP_KEY} \
 		-r ${BOOTSTRAP_REPO}
 
-authget = tok=$$(chainctl auth token --audience=$(1)) || \
-  { echo "failed token from $(1) for target $@"; exit 1; }; \
-  mkdir -p $$(dirname $(2)) && \
-  echo "auth-download[$(1)] to $(2) from $(3)" && \
-  curl --fail -LS --silent -o $(2).tmp --user "user:$$tok" $(3) && \
-	mv "$(2).tmp" "$(2)"
+# authget = tok=$$(chainctl auth token --audience=$(1)) || \
+#   { echo "failed token from $(1) for target $@"; exit 1; }; \
+#   mkdir -p $$(dirname $(2)) && \
+#   echo "auth-download[$(1)] to $(2) from $(3)" && \
+#   curl --fail -LS --silent -o $(2).tmp --user "user:$$tok" $(3) && \
+# 	mv "$(2).tmp" "$(2)"
+
