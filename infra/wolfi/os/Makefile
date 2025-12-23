@@ -32,7 +32,7 @@ MELANGE_OPTS += --arch ${ARCH}
 MELANGE_OPTS += --env-file build-${ARCH}.env
 MELANGE_OPTS += --namespace wolfi
 MELANGE_OPTS += --license 'Apache-2.0'
-MELANGE_OPTS += --git-repo-url 'https://github.com/wolfi-dev/os'
+MELANGE_OPTS += --git-repo-url 'https://github.com/ndinhbang/os'
 MELANGE_OPTS += --cache-dir ${CACHEDIR}
 MELANGE_OPTS += --pipeline-dir ./pipelines/
 MELANGE_OPTS += ${MELANGE_EXTRA_OPTS}
@@ -68,7 +68,8 @@ WOLFI_REPO ?= https://packages.wolfi.dev/os
 WOLFI_KEY ?= https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
 BOOTSTRAP ?= no
 
-SOURCE_DATE_EPOCH := $(shell git --no-pager log -1 --pretty=%ct || echo no-git)
+GIT_DIR := $(shell git rev-parse --show-toplevel 2>/dev/null || pwd)
+SOURCE_DATE_EPOCH := $(shell git -C $(GIT_DIR) --no-pager log -1 --pretty=%ct || echo no-git)
 ifeq ($(SOURCE_DATE_EPOCH),no-git)
 $(error setting SOURCE_DATE_EPOCH failed - $(SOURCE_DATE_EPOCH))
 endif

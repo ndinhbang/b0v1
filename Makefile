@@ -19,3 +19,9 @@ dev:
 .PHONY: prod
 prod:
 	docker compose up --build
+
+
+############################################################################
+# Below are existing targets for building and managing Wolfi images
+############################################################################
+include infra/wolfi/Makefile

@@ -172,6 +172,12 @@ dive:
 		--group-add $(shell getent group docker | cut -d: -f3) \
   		cgr.dev/chainguard/dive:latest $(image)
 
+.PHONY: gen-apkindex
+regen-index:
+	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
+	melange index --output $(PWD)/os/packages/$(arch)/APKINDEX.tar.gz $(PWD)/os/packages/$(arch)/*.apk
+	melange sign-index --signing-key local-melange.rsa $(PWD)/os/packages/$(arch)/APKINDEX.tar.gz
+
 # --- MELANGE PACKAGE BUILDING ---
 ifeq (${TMPDIR}, )
     CACHEDIR = /tmp/melange-cache
