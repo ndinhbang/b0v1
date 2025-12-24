@@ -1,11 +1,11 @@
 # https://github.com/wolfi-dev/os/blob/efdcceb832ece89b3ab84e9b2ee089fd9d758715/mysql-9.5.yaml
 package:
-  name: mysql-9.5
-  version: "9.5.0"
-  epoch: 1
+  name: mysql-8.0
+  version: "8.0.44"
+  epoch: 0
   description: "The MySQL open source relational database"
   copyright:
-    - license: GPL-2.0-only # https://downloads.mysql.com/docs/licenses/mysqld-9.0-gpl-en.pdf
+    - license: GPL-2.0-only
   resources:
     cpu: 30
     memory: 60Gi
@@ -58,7 +58,7 @@ pipeline:
       - uses: fetch
         with:
           uri: https://dev.mysql.com/get/Downloads/${{package.name}}/mysql-${{package.version}}.tar.gz
-          expected-sha256: ef3343981375865a2519f72b600e55f9c646e60e204a2964d3b7e8e748a110a5
+          expected-sha256: 609522ed1fefce5ab388dec25e0d1bce132382da26e2b77b68f0741c0a641356
       - uses: cmake/configure
         with:
           opts: |
@@ -89,6 +89,9 @@ pipeline:
             -DWITH_VALGRIND=OFF \
             -DWITH_ZLIB=system
       - uses: cmake/build
+        with:
+          opts: |
+            -- -j2
       - uses: cmake/install
       # CMAKE_INSTALL_PREFIX=/usr confuses this.
       - name: "Fix installation path of systemd components"
@@ -192,7 +195,7 @@ update:
     identifier: mysql/mysql-server
     strip-prefix: mysql-
     use-tag: true
-    tag-filter: mysql-9.5.
+    tag-filter: mysql-8.0.
 
 test:
   environment:

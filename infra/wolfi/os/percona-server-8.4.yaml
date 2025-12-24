@@ -1,7 +1,7 @@
 # https://github.com/wolfi-dev/os/blob/2250fad9680d65e4faec65d106375642a46e7a5e/percona-server-8.4.yaml
 package:
   name: percona-server-8.4
-  version: 8.4.6.6
+  version: "8.4.7.7"
   epoch: 0
   description: "Percona Server for MySQL is a free, fully compatible, enhanced, and open source drop-in replacement for any MySQL database. It provides superior performance, scalability, and instrumentation."
   copyright:
@@ -17,6 +17,7 @@ package:
       - bash
       - busybox
       - tzdata
+
 # Replace the last `.` with `-` to fetch the correct tag.
 var-transforms:
   - from: ${{package.version}}
@@ -74,7 +75,7 @@ pipeline:
     with:
       repository: https://github.com/percona/percona-server
       tag: Percona-Server-${{vars.mangled-package-version}}
-      expected-commit: 9927a2fba29430ccbb52dd0bf74211c8ef7c335b
+      expected-commit: 9a19f1fd3bfd482ffb0a2434b5b019c66e45d7e6
       recurse-submodules: true
 
   - name: "Remove Coredumper Support"
@@ -122,7 +123,8 @@ pipeline:
   - name: "Install"
     runs: |
       cd build
-      DESTDIR="${{targets.destdir}}" ninja install
+      DESTDIR="${{targets.destdir}}" ninja -j 2 install
+
   # CMAKE_INSTALL_PREFIX=/usr confuses this.
   - name: "Fix installation path of systemd components"
     runs: |
@@ -186,7 +188,6 @@ test:
       runs: |
         # Create a non-root user for the MySQL test...
         adduser -D -h /home/mysql mysql
-        # chown -R mysql:mysql /var/lib/mysql /run/mysqld /var/tmp
         mkdir -p /run/mysqld /var/lib/mysql /var/tmp
         chown -R mysql:mysql /run/mysqld /var/lib/mysql /var/tmp
     - name: Initialize MySQL data directory
@@ -195,10 +196,8 @@ test:
     - name: Start MySQL server with no password validation
       runs: |
         su mysql -c "mysqld --datadir=/var/lib/mysql --socket=/run/mysqld/mysqld.sock --skip-grant-tables > /tmp/percona-server.log 2>&1 &"
-        # su mysql -c "mysqld --datadir=/var/lib/mysql --socket=/run/mysqld/mysqld.sock --skip-grant-tables &"
         sleep 10
         su mysql -c "mysqladmin ping --socket=/run/mysqld/mysqld.sock" || { cat /tmp/percona-server.log; exit 1; }
-        # su mysql -c "mysqladmin ping --socket=/run/mysqld/mysqld.sock" || exit 1
     - name: Create test database
       runs: |
         echo "CREATE DATABASE test_db;" | su mysql -c "mysql --socket=/run/mysqld/mysqld.sock" || exit 1
