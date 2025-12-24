@@ -1,219 +1,142 @@
-# Makefile for building and managing Wolfi-based images
-# Usage:
-#   make <target>
-# Example:
-#   make wolfi          # Run Wolfi base image
-#   make build          # Build the laravel image
-#   make publish        # Publish the built image to the registry
-
-# --- IMAGE DIGESTS ---
-# Predefined image digests for various tools
-WOLFI_IMAGE=cgr.dev/chainguard/wolfi-base@sha256:0d8efc73b806c780206b69d62e1b8cb10e9e2eefa0e4452db81b9fa00b1a5175
-APKO_IMAGE=cgr.dev/chainguard/apko@sha256:04d478ff9e94a537a5eaddfdff00735a5e797fb46e201fc015355bdaaa77326f
-MELANGE_IMAGE=cgr.dev/chainguard/melange@sha256:ab0e53ec9bb1f953141cc699ee9ae19741ff2d52397acf3e337f5998001c856b
-SDK_IMAGE=ghcr.io/wolfi-dev/sdk@sha256:5866033aff23f88676d20ced03a4113f24d5957bff60e7e629f54563094c5dfd
-CRANE_IMAGE=cgr.dev/chainguard/crane@sha256:19921119ab4aa92e341cee3070039759c6e627913a3de51eb286144e01cad311
-
-# --- DEFAULT VARIABLES ---
-# Default values for variables, can be overridden by the user
-tag ?= latest-dev
-name ?= laravel
-cache_dir ?= $(PWD)/.cache
-log_level ?= debug
-# Detect host architecture (amd64, arm64, etc.)
-# Ex: make arch=amd64,arm64)
-arch ?= $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-# Docker registry to push images to (default: Docker Hub)
-registry ?= ghcr.io/ndinhbang
-registry_backup ?= docker.io/ndinhbang
-
-# --- TARGETS ---
-
-# Remove all unused Docker data (containers, images, volumes, etc.)
-.PHONY: clean
-clean:
-	docker system prune -af && \
-	docker volume prune -af
-
-# List all Docker images with their digests and save to digests.txt
-.PHONY: digests
-digests:
-	docker images --digests > digests.txt
-
-# Run the Wolfi base image interactively
-.PHONY: wolfi
-wolfi:
-	docker run -it --rm --pull=always cgr.dev/chainguard/wolfi-base
-
-# Run the apko image and display its version
-.PHONY: apko
-apko:
-	docker run --rm --pull=always cgr.dev/chainguard/apko version
-
-# Run the melange image and display its version
-.PHONY: melange
-melange:
-	docker run --rm --pull=always cgr.dev/chainguard/melange version
-
-# Run the Wolfi SDK image
-.PHONY: sdk
-sdk:
-	docker run --rm --pull=always ghcr.io/wolfi-dev/sdk
-
-# Run the crane image and display its version
-.PHONY: crane
-crane:
-	docker run --rm --pull=always cgr.dev/chainguard/crane version
-
-# Run the Chainguard Laravel image interactively
-.PHONY: laravel
-laravel:
-	docker run -it --rm --pull=always cgr.dev/chainguard/laravel:latest-dev
-
-# Run the Chainguard Nginx image interactively
-.PHONY: nginx
-nginx:
-	docker run -it --rm --pull=always cgr.dev/chainguard/nginx:latest-dev
-
-# Generate a lock file for the specified apko YAML configuration
-.PHONY: lock
-lock:
-	$(eval cache := 0)
-
-	mkdir -p $(PWD)/images/$(name)/$(tag) && \
-	apko lock $(PWD)/images/$(name)/$(tag).apko.yaml \
-		--log-level $(log_level) \
-		--workdir $(PWD)/images/$(name) \
-		--output $(PWD)/images/$(name)/$(tag)/apko.lock.json \
-		$(if $(filter 1,$(cache)),--cache-dir $(cache_dir),)
-
-# Build a minimal root filesystem using apko
-.PHONY: rootfs
-rootfs:
-	mkdir -p $(PWD)/images/$(name)/$(tag) && \
-	apko build-minirootfs $(PWD)/images/$(name)/$(tag).apko.yaml $(PWD)/images/$(name)/$(tag)/minirootfs.tar.gz \
-		--build-arch $(arch) \
-		--workdir $(PWD)/images/$(name) \
-		--log-level $(log_level)
-
-# Build a container image using apko
-.PHONY: image
-image:
-	$(eval offline := 0)
-	$(eval cache := 0)
-
-	mkdir -p $(PWD)/images/$(name)/$(tag) && \
-	apko build $(PWD)/images/$(name)/$(tag).apko.yaml $(registry)/$(name):$(tag) $(PWD)/images/$(name)/$(tag)/image.tar \
-		--log-level $(log_level) \
-		--workdir $(PWD)/images/$(name) \
-		--sbom-path $(PWD)/images/$(name)/$(tag) \
-		--lockfile $(PWD)/images/$(name)/$(tag)/apko.lock.json \
-		$(if $(filter 1,$(cache)),--cache-dir $(cache_dir),) \
-		$(if $(filter 1,$(offline)),--offline,)
-
-# Show the packages included in the apko YAML configuration
-.PHONY: show-packages
-show-packages:
-	$(eval offline := 0)
-	$(eval cache := 0)
-
-	apko show-packages $(PWD)/images/$(name)/$(tag).apko.yaml \
-		--arch $(arch) \
-		--workdir $(PWD)/images/$(name) \
-		--log-level $(log_level) \
-		--format "{{ .Name }}={{ .Version }}" \
-		$(if $(filter 1,$(cache)),--cache-dir $(cache_dir),) \
-		$(if $(filter 1,$(offline)),--offline,)
-
-# Load the built image tarball into Docker
-.PHONY: load
-load:
-	docker load -i $(PWD)/images/$(name)/$(tag)/image.tar
-
-.PHONY: run
-run:
-	docker run -it --rm $(registry)/$(name):$(tag)
-
-# Run tests for the built image
-.PHONY: test
-test:
-	./images/$(name)/tests/run.sh $(registry)/$(name):$(tag)
-
-# Perform the full build process: lock, image, and load
-.PHONY: build
-build: lock image load
-
-# Tag and push the image to the Docker registry
-.PHONY: publish
-publish: lock
-	$(eval local := 0)
-	$(eval offline := 0)
-
-	apko publish $(PWD)/images/$(name)/$(tag).apko.yaml $(registry)/$(name):$(tag) $(registry_backup)/$(name):$(tag) \
-		--workdir $(PWD)/images/$(name) \
-		--log-level $(log_level) \
-		--lockfile $(PWD)/images/$(name)/$(tag)/apko.lock.json \
-		--image-refs $(PWD)/images/$(name)/$(tag)/.digests \
-		$(if $(filter 1,$(cache)),--cache-dir $(cache_dir),) \
-		$(if $(filter 1,$(offline)),--offline,) \
-		$(if $(filter 1,$(local)),--local,) ; \
-
-# Show the filesystem contents of the built image
-.PHONY: show-fs
-show-fs:
-	$(eval image := $(registry)/$(name):$(tag))
-	crane export $(image) - | tar -tvf -
-
-.PHONY: dive
-dive:
-	$(eval image := $(registry)/$(name):$(tag))
-	docker run --rm -it \
-  		-v /var/run/docker.sock:/var/run/docker.sock \
-		--group-add $(shell getent group docker | cut -d: -f3) \
-  		cgr.dev/chainguard/dive:latest $(image)
-
-.PHONY: gen-apkindex
-regen-index:
-	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
-	melange index --output $(PWD)/os/packages/$(arch)/APKINDEX.tar.gz $(PWD)/os/packages/$(arch)/*.apk
-	melange sign-index --signing-key local-melange.rsa $(PWD)/os/packages/$(arch)/APKINDEX.tar.gz
-
-# --- MELANGE PACKAGE BUILDING ---
+USE_CACHE ?= no
+ARCH ?= $(shell uname -m)
+ifeq (${ARCH}, arm64)
+	ARCH = aarch64
+endif
 ifeq (${TMPDIR}, )
     CACHEDIR = /tmp/melange-cache
 else
     CACHEDIR = ${TMPDIR}/melange-cache
 endif
 
-.PHONY: cache
-cache:
-	mkdir -p ${CACHEDIR}
+MELANGE ?= $(shell which melange)
+WOLFICTL ?= $(shell which wolfictl)
+KEY ?= local-melange.rsa
+REPO ?= $(shell pwd)/packages
 
-# Get list of all package YAML files
-yamls := $(wildcard $(shell pwd)/os/*.yaml)
-# Extract package names from YAML filenames: /home/user/project/os/app1.yaml -> app1
-pkgs := $(subst .yaml,,$(notdir $(yamls)))
-# Define targets for building each package
-pkg_targets = $(foreach name,$(pkgs),package/$(name))
+GIT_DIR := $(shell git rev-parse --show-toplevel 2>/dev/null || pwd)
+SOURCE_DATE_EPOCH := $(shell git -C $(GIT_DIR) --no-pager log -1 --pretty=%ct || echo no-git)
+ifeq ($(SOURCE_DATE_EPOCH),no-git)
+$(error setting SOURCE_DATE_EPOCH failed - $(SOURCE_DATE_EPOCH))
+endif
+export SOURCE_DATE_EPOCH
 
-.PHONY: $(pkg_targets)
-$(pkg_targets): package/%: cache
-	$(eval yamlfile := $(shell pwd)/os/$*.yaml)
-	$(eval pkgver := $(shell melange package-version $(yamlfile)))
-	@printf "Building package $* with version $(pkgver) from file $(yamlfile)\n"
-	$(MAKE) yamlfile=$(yamlfile) pkgname=$* packages/$(ARCH)/$(pkgver).apk
+DOCKER_PLATFORM_ARG := $(shell \
+  case $(ARCH) in \
+	(aarch64) darch=arm64;; \
+	(x86_64) darch=amd64;; \
+	(*) echo "unknown-docker-platform-arch-$(ARCH)"; exit 1;; \
+  esac ; \
+  echo "--platform=linux/$$darch" \
+)
 
-packages/$(ARCH)/%.apk: $(KEY) $(QEMU_KERNEL_DEP) $(yamlfile)
-	@[ -n "$(pkgname)" ] || { echo "$@: pkgname is not set"; exit 1; }
-	@[ -n "$(yamlfile)" ] || { echo "$@: yamlfile is not set"; exit 1; }
-	mkdir -p  $(shell pwd)/os/$(pkgname)
-	melange build $(yamlfile) \
-		--source-dir $(shell pwd)/os/$(pkgname) \
-		--repository-append $(shell pwd)/os/packages \
-		--keyring-append local-melange.rsa.pub \
-		--signing-key local-melange.rsa \
-		--arch amd64,aarch64 \
-		--log-level debug \
-		--cache-dir ${CACHEDIR} \
-		-r https://packages.wolfi.dev/os \
-		-k https://packages.wolfi.dev/os/wolfi-signing.rsa.pub \
+keygen:
+	@if [ -f "${OS_DIR}/${KEY}" ] && [ -f "${OS_DIR}/${KEY}.pub" ]; then \
+		echo "\033[1;36mINFO:\033[0m Skipping keygen, ${OS_DIR}/${KEY} existed"; \
+	else \
+		mkdir -p "${OS_DIR}"; \
+		${MELANGE} keygen "${OS_DIR}/${KEY}"; \
+	fi
+
+.PHONY: dev-container
+dev-container:
+	docker run $(DOCKER_PLATFORM_ARG) --pull=always --privileged --rm -it \
+		--entrypoint="/bin/bash" \
+	    -v "${OS_DIR}:${OS_DIR}" \
+		--mount type=bind,source="${ROOT_DIR}/.git",destination="${OS_DIR}/.git",readonly \
+		-v /tmp:/tmp \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+	    -w "${OS_DIR}" \
+	    -e SOURCE_DATE_EPOCH=$(SOURCE_DATE_EPOCH) \
+	    -e HTTP_AUTH \
+	    ghcr.io/wolfi-dev/sdk:latest -il
+
+PACKAGES_CONTAINER_FOLDER ?= /work/packages
+# This target spins up a docker container that is helpful for testing local
+# changes to the packages. It mounts the local packages folder as a read-only,
+# and sets up the necessary keys for you to run `apk add` commands, and then
+# test the packages however you see fit.
+.PHONY: local-wolfi
+local-wolfi: keygen
+	mkdir -p "${OS_DIR}/packages"
+	$(eval TMP_REPOS_DIR := $(shell mktemp --tmpdir -d "$@.XXXXXX"))
+	$(eval TMP_REPOS_FILE := $(TMP_REPOS_DIR)/repositories)
+	echo "https://packages.wolfi.dev/os" > $(TMP_REPOS_FILE)
+	echo "$(PACKAGES_CONTAINER_FOLDER)" >> $(TMP_REPOS_FILE)
+ifneq ($(LOCAL_WOLFI_EXTRA_REPO),)
+	echo "$(LOCAL_WOLFI_EXTRA_REPO)" >> $(TMP_REPOS_FILE)
+endif
+	docker run $(DOCKER_PLATFORM_ARG) --pull=always --rm -it \
+		--entrypoint="/bin/sh" \
+		--mount type=bind,source="${OS_DIR}/packages",destination="$(PACKAGES_CONTAINER_FOLDER)",readonly \
+		--mount type=bind,source="${OS_DIR}/$(KEY).pub",destination="/etc/apk/keys/$(KEY).pub",readonly \
+		--mount type=bind,source="$(TMP_REPOS_FILE)",destination="/etc/apk/repositories",readonly \
+		-w "$(PACKAGES_CONTAINER_FOLDER)" \
+		cgr.dev/chainguard/wolfi-base:latest -il
+	rm "$(TMP_REPOS_FILE)"
+	rmdir "$(TMP_REPOS_DIR)"
+
+# This target spins up a docker container that is helpful for building images
+# using local packages.
+# It mounts the:
+#  - local packages dir (default: pwd) as a read-only, as /work/packages. This
+#    is where the local packages are set up to be fetched from.
+#  - local os dir (default: pwd) as a read-only, as /work/os. This is where
+#    apko config files should live in. Note that this can be the current
+#    directory also.
+# Both of these can be overridden with PACKAGES_CONTAINER_FOLDER and OS_DIR
+# respectively.
+# It sets up the necessary tools, keys, and repositories for you to run
+# apko to build images and then test them. Currently, the apko tool requires a
+# few flags to get the image built, but we'll work on getting the viper config
+# set up to make this easier.
+#
+# The resulting image will be in the OUT_DIR, and it is best to specify the
+# OUT_DIR as a directory in the host system, so that it will persist after the
+# container is done, as well as you can test / iterate with the image and run
+# tests in the host.
+#
+# Example invocation for
+# mkdir /tmp/out && OUT_DIR=/tmp/out make dev-container-wolfi
+# Then in the container, you could build an image like this:
+# apko -C /work/out build --keyring-append /etc/apk/keys/wolfi-signing.rsa.pub \
+#  --keyring-append /etc/apk/keys/local-melange.rsa.pub --arch host \
+# /work/os/conda-IMAGE.yaml conda-test:test /work/out/conda-test.tar
+#
+# Then from the host you can run:
+# docker load -i /tmp/out/conda-test.tar
+# docker run -it
+OUT_LOCAL_DIR ?= /work/out
+OS_LOCAL_DIR ?= /work/os
+OS_DIR ?= ${PWD}
+
+.PHONY: dev-container-wolfi
+dev-container-wolfi: keygen
+	$(eval TMP_REPOS_DIR := $(shell mktemp --tmpdir -d "$@.XXXXXX"))
+	$(eval TMP_REPOS_FILE := $(TMP_REPOS_DIR)/repositories)
+	$(eval OUT_DIR := $(shell echo $${OUT_DIR:-$$(mktemp --tmpdir -d "$@-out.XXXXXX")}))
+	echo "https://packages.wolfi.dev/os" > $(TMP_REPOS_FILE)
+	echo "$(PACKAGES_CONTAINER_FOLDER)" >> $(TMP_REPOS_FILE)
+ifneq ($(LOCAL_WOLFI_EXTRA_REPO),)
+	echo "$(LOCAL_WOLFI_EXTRA_REPO)" >> $(TMP_REPOS_FILE)
+endif
+	docker run $(DOCKER_PLATFORM_ARG) --pull=always --rm -it \
+		--entrypoint="/bin/bash" \
+		--mount type=bind,source="${OUT_DIR}",destination="$(OUT_LOCAL_DIR)" \
+		--mount type=bind,source="${IMAGES_DIR}",destination="$(OS_LOCAL_DIR)",readonly \
+		--mount type=bind,source="${OS_DIR}/packages",destination="$(PACKAGES_CONTAINER_FOLDER)",readonly \
+		--mount type=bind,source="${OS_DIR}/$(KEY).pub",destination="/etc/apk/keys/$(KEY).pub",readonly \
+		--mount type=bind,source="$(TMP_REPOS_FILE)",destination="/etc/apk/repositories",readonly \
+		-w "$(OS_LOCAL_DIR)" \
+		ghcr.io/wolfi-dev/sdk:latest -il
+	rm "$(TMP_REPOS_FILE)"
+	rmdir "$(TMP_REPOS_DIR)"
+
+
+# authget = tok=$$(chainctl auth token --audience=$(1)) || \
+#   { echo "failed token from $(1) for target $@"; exit 1; }; \
+#   mkdir -p $$(dirname $(2)) && \
+#   echo "auth-download[$(1)] to $(2) from $(3)" && \
+#   curl --fail -LS --silent -o $(2).tmp --user "user:$$tok" $(3) && \
+# 	mv "$(2).tmp" "$(2)"
+
