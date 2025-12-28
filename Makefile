@@ -22,7 +22,23 @@ help: ## Show this help message
 	@echo 'Usage: make [target]'
 	@echo ''
 	@echo 'Available targets:'
-	@awk 'BEGIN {FS = ":.*##"; printf "\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@if [ -f "infra/wolfi/images/Makefile" ]; then \
+		echo ''; \
+		echo '\033[1mWolfi Images (infra/wolfi/images/):\033[0m'; \
+		awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_\/-]+:.*?##/ { printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2 }' infra/wolfi/images/Makefile; \
+		echo ''; \
+		echo '  \033[2mUsage: make -C infra/wolfi/images <target> name=<name> tag=<tag>\033[0m'; \
+		echo '  \033[2mExample: make -C infra/wolfi/images image/build name=laravel tag=latest-dev\033[0m'; \
+	fi
+	@if [ -f "infra/wolfi/os/Makefile" ]; then \
+		echo ''; \
+		echo '\033[1mWolfi OS Packages (infra/wolfi/os/):\033[0m'; \
+		awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_\/-][a-zA-Z0-9_\/-]*:.*?##/ { printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2 } /[a-zA-Z_\/-][a-zA-Z0-9_\/-]*\/%:.*?##/ { match($$0, /[a-zA-Z_\/-][a-zA-Z0-9_\/-]*\/%/); target = substr($$0, RSTART, RLENGTH); printf "  \033[36m%-25s\033[0m %s\n", target, $$2 }' infra/wolfi/os/Makefile; \
+		echo ''; \
+		echo '  \033[2mUsage: make -C infra/wolfi/os <target>\033[0m'; \
+		echo '  \033[2mExample: make -C infra/wolfi/os package/php\033[0m'; \
+	fi
 
 ##@ Docker Compose Environments
 

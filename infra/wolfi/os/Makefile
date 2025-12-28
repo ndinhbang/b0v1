@@ -71,20 +71,20 @@ MELANGE_OPTS += -r ${WOLFI_REPO}
 ${KEY}:
 	${MELANGE} keygen ${KEY}
 
-.PHONY: cache
-cache:
+.PHONY: pkg/cache
+pkg/cache: ## Create melange cache directory
 	mkdir -p ${CACHEDIR}
 
-.PHONY: clean
-clean:
+.PHONY: pkg/clean
+pkg/clean: ## Clean built packages and kernel artifacts
 	rm -rf packages/${ARCH}
 	rm -rf kernel/
 
-.PHONY: clean-cache
-clean-cache:
+.PHONY: pkg/clean-cache
+pkg/clean-cache: ## Clean melange build cache
 	rm -rf ${CACHEDIR}
 
-# ${CACHEDIR}/.libraries_token.txt: cache
+# ${CACHEDIR}/.libraries_token.txt: pkg/cache
 # 	tmpf=$(shell mktemp); \
 # 	chainctl auth login --audience libraries.cgr.dev; \
 # 	chainctl auth token --audience libraries.cgr.dev > $${tmpf}; \
@@ -128,7 +128,7 @@ clean-cache:
 yamls := $(wildcard *.yaml)
 pkgs := $(subst .yaml,,$(yamls))
 pkg_targets = $(foreach name,$(pkgs),package/$(name))
-$(pkg_targets): package/%: cache
+$(pkg_targets): package/%: pkg/cache ## Build a specific package from YAML file (e.g., package/php)
 	$(eval yamlfile := $*.yaml)
 	$(eval pkgver := $(shell $(MELANGE) package-version $(yamlfile)))
 	@printf "Building package $* with version $(pkgver) from file $(yamlfile)\n"
@@ -141,12 +141,12 @@ packages/$(ARCH)/%.apk: $(KEY) $(QEMU_KERNEL_DEP) $(yamlfile)
 	$(MELANGE) build $(yamlfile) $(MELANGE_OPTS) --source-dir ./$(pkgname)/
 
 docker_pkg_targets = $(foreach name,$(pkgs),docker-package/$(name))
-$(docker_pkg_targets): docker-package/%:
+$(docker_pkg_targets): docker-package/%: ## Build package using docker runner (e.g., docker-package/php)
 	@echo "Building using docker runner"
 	MELANGE_RUNNER=docker make package/$*
 
 dbg_targets = $(foreach name,$(pkgs),debug/$(name))
-$(dbg_targets): debug/%: cache $(KEY) $(QEMU_KERNEL_DEP)
+$(dbg_targets): debug/%: pkg/cache $(KEY) $(QEMU_KERNEL_DEP) ## Build package in interactive debug mode (e.g., debug/php)
 	$(eval yamlfile := $*.yaml)
 	$(eval pkgver := $(shell $(MELANGE) package-version $(yamlfile)))
 	@printf "Building package $* with version $(pkgver) from file $(yamlfile)\n"
@@ -155,7 +155,7 @@ $(dbg_targets): debug/%: cache $(KEY) $(QEMU_KERNEL_DEP)
 	$(MELANGE) build $(yamlfile) $(MELANGE_DEBUG_OPTS) --source-dir ./$(*)/
 
 test_targets = $(foreach name,$(pkgs),test/$(name))
-$(test_targets): test/%: cache $(KEY) $(QEMU_KERNEL_DEP)
+$(test_targets): test/%: pkg/cache $(KEY) $(QEMU_KERNEL_DEP) ## Run tests for a package (e.g., test/php)
 	mkdir -p ./$(*)/
 	$(eval yamlfile := $*.yaml)
 	$(eval pkgver := $(shell $(MELANGE) package-version $(yamlfile)))
@@ -163,12 +163,12 @@ $(test_targets): test/%: cache $(KEY) $(QEMU_KERNEL_DEP)
 	$(MELANGE) test $(yamlfile) $(MELANGE_TEST_OPTS) --source-dir ./$(*)/
 
 docker_test_targets = $(foreach name,$(pkgs),docker-test/$(name))
-$(docker_test_targets): docker-test/%:
+$(docker_test_targets): docker-test/%: ## Run tests using docker runner (e.g., docker-test/php)
 	@echo "Testing using docker runner"
 	MELANGE_RUNNER=docker make test/$*
 
 testdbg_targets = $(foreach name,$(pkgs),test-debug/$(name))
-$(testdbg_targets): test-debug/%: cache $(KEY) $(QEMU_KERNEL_DEP)
+$(testdbg_targets): test-debug/%: pkg/cache $(KEY) $(QEMU_KERNEL_DEP) ## Run tests in interactive debug mode (e.g., test-debug/php)
 	mkdir -p ./$(*)/
 	$(eval yamlfile := $*.yaml)
 	$(eval pkgver := $(shell $(MELANGE) package-version $(yamlfile)))
@@ -178,7 +178,7 @@ $(testdbg_targets): test-debug/%: cache $(KEY) $(QEMU_KERNEL_DEP)
 # Please do not print any additional content via this target
 # so that we can parse output directly with jq
 compile_targets = $(foreach name,$(pkgs),compile/$(name))
-$(compile_targets): compile/%:
+$(compile_targets): compile/%: ## Compile package configuration (e.g., compile/php)
 	@$(MAKE) $(KEY) >/dev/null 2>&1
 	@mkdir -p ./$(*)/
 	$(eval yamlfile := $*.yaml)

@@ -67,7 +67,7 @@ image/validate-params:
 # Generate a lock file for the specified apko YAML configuration
 # Lock files ensure reproducible builds by pinning package versions
 .PHONY: image/lock
-image/lock: image/validate-params
+image/lock: image/validate-params ## Generate lock file for reproducible builds (requires name= tag=)
 	$(eval cache := 0)
 	@echo "Generating lock file for $(name):$(tag)..."
 	mkdir -p $(OUT_DIR)/$(name)/$(tag) && \
@@ -81,7 +81,7 @@ image/lock: image/validate-params
 # Build a minimal root filesystem using apko
 # Useful for creating base images without full OCI image layers
 .PHONY: image/rootfs
-image/rootfs: image/validate-params
+image/rootfs: image/validate-params ## Build minimal root filesystem (requires name= tag=)
 	@echo "Building minimal rootfs for $(name):$(tag)..."
 	mkdir -p $(OUT_DIR)/$(name)/$(tag) && \
 	$(APKO) build-minirootfs $(IMAGES_DIR)/$(name)/$(tag).apko.yaml $(OUT_DIR)/$(name)/$(tag)/minirootfs.tar.gz \
@@ -93,7 +93,7 @@ image/rootfs: image/validate-params
 # Build a container image using apko
 # This is the main target for building complete OCI images
 .PHONY: image/image
-image/image: image/validate-params
+image/image: image/validate-params ## Build container image (requires name= tag=)
 	$(eval offline := 0)
 	$(eval cache := 0)
 	@echo "Building image $(registry)/$(name):$(tag)..."
@@ -112,7 +112,7 @@ image/image: image/validate-params
 # Show the packages included in the apko YAML configuration
 # Useful for debugging and understanding what will be installed
 .PHONY: image/show-packages
-image/show-packages: image/validate-params
+image/show-packages: image/validate-params ## Show packages in apko config (requires name= tag=)
 	$(eval offline := 0)
 	$(eval cache := 0)
 	@echo "Packages for $(name):$(tag):"
@@ -130,7 +130,7 @@ image/build: image/lock image/image ## Generate lock file and build image
 
 # Tag and push the image to the Docker registry
 .PHONY: image/publish
-image/publish: image/lock image/validate-params
+image/publish: image/lock image/validate-params ## Publish image to registry (requires name= tag=)
 	$(eval local := 0)
 	$(eval offline := 0)
 	$(eval cache := 0)
@@ -155,7 +155,7 @@ image/publish: image/lock image/validate-params
 # Usage: make image/download-packages name=laravel tag=latest-dev
 # This downloads all required packages to build the image without internet access
 .PHONY: image/download-packages
-image/download-packages: image/validate-params
+image/download-packages: image/validate-params ## Download packages for offline builds (requires name= tag=)
 	$(eval apko-path := $(IMAGES_DIR)/$(name)/$(tag).apko.yaml)
 	$(eval offline := 0)
 	$(eval cache := 0)
@@ -188,7 +188,7 @@ image/download-packages: image/validate-params
 # Generate APKINDEX from downloaded packages
 # This creates a local package repository that can be used for offline builds
 .PHONY: image/gen-apkindex
-image/gen-apkindex:
+image/gen-apkindex: ## Generate APKINDEX from downloaded packages
 	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
 	@echo "=== Generating APKINDEX ==="
 	@echo "Architecture: $(arch)"
