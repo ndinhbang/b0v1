@@ -4,9 +4,9 @@
 # This Makefile provides targets for building OCI container images using apko.
 #
 # Common usage:
-#   make image name=laravel tag=latest-dev   # Build image
-#   make download-image name=laravel         # Download packages for offline build
-#   make gen-apkindex                        # Generate APKINDEX from downloaded packages
+#   make image/image name=laravel tag=latest-dev   # Build image
+#   make image/download-packages name=laravel         # Download packages for offline build
+#   make image/gen-apkindex                        # Generate APKINDEX from downloaded packages
 #
 # Required parameters for most targets:
 #   name  - Image name (e.g., laravel, nginx)
@@ -53,8 +53,8 @@ registry_backup ?= docker.io/ndinhbang
 # =============================================================================
 
 # Validate required parameters
-.PHONY: validate-params
-validate-params:
+.PHONY: image/validate-params
+image/validate-params:
 	@test -n "$(name)" || (echo "Error: name= is required (e.g., name=laravel)"; exit 1)
 	@test -n "$(tag)" || (echo "Error: tag= is required (e.g., tag=latest-dev)"; exit 1)
 	@test -f "$(IMAGES_DIR)/$(name)/$(tag).apko.yaml" || \
@@ -66,8 +66,8 @@ validate-params:
 
 # Generate a lock file for the specified apko YAML configuration
 # Lock files ensure reproducible builds by pinning package versions
-.PHONY: lock
-lock: validate-params
+.PHONY: image/lock
+image/lock: image/validate-params
 	$(eval cache := 0)
 	@echo "Generating lock file for $(name):$(tag)..."
 	mkdir -p $(OUT_DIR)/$(name)/$(tag) && \
@@ -80,8 +80,8 @@ lock: validate-params
 
 # Build a minimal root filesystem using apko
 # Useful for creating base images without full OCI image layers
-.PHONY: rootfs
-rootfs: validate-params
+.PHONY: image/rootfs
+image/rootfs: image/validate-params
 	@echo "Building minimal rootfs for $(name):$(tag)..."
 	mkdir -p $(OUT_DIR)/$(name)/$(tag) && \
 	$(APKO) build-minirootfs $(IMAGES_DIR)/$(name)/$(tag).apko.yaml $(OUT_DIR)/$(name)/$(tag)/minirootfs.tar.gz \
@@ -92,8 +92,8 @@ rootfs: validate-params
 
 # Build a container image using apko
 # This is the main target for building complete OCI images
-.PHONY: image
-image: validate-params
+.PHONY: image/image
+image/image: image/validate-params
 	$(eval offline := 0)
 	$(eval cache := 0)
 	@echo "Building image $(registry)/$(name):$(tag)..."
@@ -111,8 +111,8 @@ image: validate-params
 
 # Show the packages included in the apko YAML configuration
 # Useful for debugging and understanding what will be installed
-.PHONY: show-packages
-show-packages: validate-params
+.PHONY: image/show-packages
+image/show-packages: image/validate-params
 	$(eval offline := 0)
 	$(eval cache := 0)
 	@echo "Packages for $(name):$(tag):"
@@ -125,12 +125,12 @@ show-packages: validate-params
 		$(if $(filter 1,$(offline)),--offline,)
 
 # Perform the full build process: lock, image, and load
-.PHONY: build
-build: lock image ## Generate lock file and build image
+.PHONY: image/build
+image/build: image/lock image/image ## Generate lock file and build image
 
 # Tag and push the image to the Docker registry
-.PHONY: publish
-publish: lock validate-params
+.PHONY: image/publish
+image/publish: image/lock image/validate-params
 	$(eval local := 0)
 	$(eval offline := 0)
 	$(eval cache := 0)
@@ -152,10 +152,10 @@ publish: lock validate-params
 # =============================================================================
 
 # Download packages for offline builds
-# Usage: make download-image name=laravel tag=latest-dev
+# Usage: make image/download-packages name=laravel tag=latest-dev
 # This downloads all required packages to build the image without internet access
-.PHONY: download-image
-download-image: validate-params
+.PHONY: image/download-packages
+image/download-packages: image/validate-params
 	$(eval apko-path := $(IMAGES_DIR)/$(name)/$(tag).apko.yaml)
 	$(eval offline := 0)
 	$(eval cache := 0)
@@ -183,12 +183,12 @@ download-image: validate-params
 			--recursive
 	@echo ""
 	@echo "✓ Packages downloaded to: $(OUT_DIR)/packages/$(arch)"
-	@echo "  Run 'make gen-apkindex' to generate the package index"
+	@echo "  Run 'make image/gen-apkindex' to generate the package index"
 
 # Generate APKINDEX from downloaded packages
 # This creates a local package repository that can be used for offline builds
-.PHONY: gen-apkindex
-gen-apkindex:
+.PHONY: image/gen-apkindex
+image/gen-apkindex:
 	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
 	@echo "=== Generating APKINDEX ==="
 	@echo "Architecture: $(arch)"
@@ -196,7 +196,7 @@ gen-apkindex:
 	@echo ""
 	@if [ ! -d $(OUT_DIR)/packages/$(arch) ] || [ -z "$$(ls -A $(OUT_DIR)/packages/$(arch)/*.apk 2>/dev/null)" ]; then \
 		echo "✗ Error: No APK files found in $(OUT_DIR)/packages/$(arch)"; \
-		echo "  Please run 'make download-image name=<name> tag=<tag>' first"; \
+		echo "  Please run 'make image/download-packages name=<name> tag=<tag>' first"; \
 		exit 1; \
 	fi
 	@echo "Step 1/3: Verifying APK packages..."
