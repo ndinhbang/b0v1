@@ -20,6 +20,12 @@
 #   offline    - Offline mode (0 or 1, default: 0)
 # =============================================================================
 
+##@ Wolfi Images
+.PHONY: help
+help: ## Show this help message
+	@echo 'Available targets:'
+	@awk '$$0 ~ "^[a-zA-Z_/-][a-zA-Z0-9_/-]*:.*##" { split($$0, a, ": .*## "); printf "  \033[36m%-25s\033[0m %s\n", a[1], a[2] }' $(MAKEFILE_LIST)
+
 # --- TOOL VALIDATION ---
 # Check if required tools are available
 APKO ?= $(shell which apko)

@@ -1,3 +1,11 @@
+# =============================================================================
+# Help Target - Display all available make commands
+# =============================================================================
+.PHONY: help
+help: ## Show this help message
+	@echo 'Available targets:'
+	@awk '$$0 ~ "^[a-zA-Z_/-][a-zA-Z0-9_/-]*:.*##" { split($$0, a, ": .*## "); printf "  \033[36m%-25s\033[0m %s\n", a[1], a[2] } $$0 ~ "[a-zA-Z_/-][a-zA-Z0-9_/-]*/%:.*##" { match($$0, "[a-zA-Z_/-][a-zA-Z0-9_/-]*/%"); target = substr($$0, RSTART, RLENGTH); split($$0, a, ": .*## "); printf "  \033[36m%-25s\033[0m %s\n", target, a[2] }' $(MAKEFILE_LIST)
+
 USE_CACHE ?= no
 ARCH ?= $(shell uname -m)
 ifeq (${ARCH}, arm64)
