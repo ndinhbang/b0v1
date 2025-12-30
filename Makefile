@@ -163,7 +163,6 @@ HOST_OUT_DIR := ${WOLFI_DIR}/artifacts
 HOST_PACKAGES_OUT_DIR := ${HOST_OUT_DIR}/packages
 HOST_IMAGES_OUT_DIR := ${HOST_OUT_DIR}/images
 KEY ?= local-melange.rsa
-REPO := ${HOST_OS_DIR}/packages
 
 # Container directories (inside Docker container)
 CONTAINER_OUT_DIR := /work/out
@@ -203,7 +202,7 @@ dev-container: ## Enter Wolfi SDK container for package development
 	docker run $(DOCKER_PLATFORM_ARG) --pull=always --privileged --rm -it \
 		--entrypoint="/bin/bash" \
 	    -v "${HOST_OS_DIR}:${HOST_OS_DIR}" \
-		-v "${HOST_PACKAGES_OUT_DIR}:${HOST_OS_DIR}/packages" \
+		-v "${HOST_PACKAGES_OUT_DIR}:${CONTAINER_PACKAGES_DIR}" \
 		--mount type=bind,source="${ROOT_DIR}/.git",destination="${HOST_OS_DIR}/.git",readonly \
 		-v /tmp:/tmp \
 		-v /var/run/docker.sock:/var/run/docker.sock \

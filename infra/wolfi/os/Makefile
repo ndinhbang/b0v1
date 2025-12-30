@@ -16,12 +16,12 @@ ifeq (${TMPDIR}, )
 else
     CACHEDIR = ${TMPDIR}/melange-cache
 endif
-TARGETDIR = packages/${ARCH}
+# TARGETDIR = packages/${ARCH}
 
 MELANGE ?= $(shell which melange)
 WOLFICTL ?= $(shell which wolfictl)
 KEY ?= local-melange.rsa
-REPO ?= $(shell pwd)/packages
+REPO ?= /work/packages
 # QEMU_KERNEL_REPO := https://apk.cgr.dev/chainguard-private/
 
 # MELANGE_RUNNER ?= qemu
@@ -34,6 +34,7 @@ REPO ?= $(shell pwd)/packages
 # endif
 
 MELANGE_OPTS += --repository-append ${REPO}
+MELANGE_OPTS += --out-dir ${REPO}
 MELANGE_OPTS += --keyring-append ${KEY}.pub
 MELANGE_OPTS += --signing-key ${KEY}
 MELANGE_OPTS += --arch ${ARCH}
