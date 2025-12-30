@@ -218,7 +218,7 @@ local-wolfi: keygen ## Test local packages in Wolfi base container
 	$(eval TMP_REPOS_DIR := $(shell mktemp --tmpdir -d "$@.XXXXXX"))
 	$(eval TMP_REPOS_FILE := $(TMP_REPOS_DIR)/repositories)
 	echo "https://packages.wolfi.dev/os" > $(TMP_REPOS_FILE)
-	echo "https://packages.cgr.dev/extras" > $(TMP_REPOS_FILE)
+	echo "https://packages.cgr.dev/extras" >> $(TMP_REPOS_FILE)
 	echo "$(CONTAINER_PACKAGES_DIR)" >> $(TMP_REPOS_FILE)
 ifneq ($(LOCAL_WOLFI_EXTRA_REPO),)
 	echo "$(LOCAL_WOLFI_EXTRA_REPO)" >> $(TMP_REPOS_FILE)
@@ -246,7 +246,7 @@ wolfi-dev: keygen ## Enter Wolfi SDK container for building images (main build e
 	@echo "Container output directory: $(CONTAINER_OUT_DIR)"
 	@echo ""
 	echo "https://packages.wolfi.dev/os" > $(TMP_REPOS_FILE)
-	echo "https://packages.cgr.dev/extras" > $(TMP_REPOS_FILE)
+	echo "https://packages.cgr.dev/extras" >> $(TMP_REPOS_FILE)
 	echo "$(CONTAINER_PACKAGES_DIR)" >> $(TMP_REPOS_FILE)
 ifneq ($(LOCAL_WOLFI_EXTRA_REPO),)
 	echo "$(LOCAL_WOLFI_EXTRA_REPO)" >> $(TMP_REPOS_FILE)
