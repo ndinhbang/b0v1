@@ -118,35 +118,66 @@ pkg/fetch-url: ## Fetch and download APK from URL to /work/packages/$(ARCH)
 
 # 1. Download Packages
 .PHONY: pkg/download
-pkg/download: ## Download packages from apko config file & create checksum file
+pkg/download: ## Download packages from apko config file (specify arch=<arch> or download both)
 	$(eval name ?= laravel)
 	$(eval tag ?= latest-dev)
 	$(eval apko-path := $(IMAGES_DIR)/$(name)/$(tag).apko.yaml)
-	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
+	$(eval arch_normalized := $(if $(arch),$(shell echo $(arch) | sed 's/amd64/x86_64/;s/arm64/aarch64/'),))
+	$(eval archs := $(if $(arch_normalized),$(arch_normalized),x86_64 aarch64))
 	@test -f "$(IMAGES_DIR)/$(name)/$(tag).apko.yaml" || \
 		(echo "Error: Config file not found: $(IMAGES_DIR)/$(name)/$(tag).apko.yaml"; exit 1)
 	@echo "=== Downloading packages for $(name):$(tag) ==="
 	@echo "Config: $(apko-path)"
-	@echo "Target: $(REPO)/$(arch)"
+	@for arch in $(archs); do \
+		echo ""; \
+		echo ">>> Architecture: $$arch"; \
+		echo "Target: $(REPO)/$$arch"; \
+		\
+		echo "Step 1/4: Updating remote index..."; \
+		apk update; \
+		\
+		echo "Step 2/4: Fetching packages..."; \
+		mkdir -p $(REPO)/$$arch; \
+		$(APKO) show-packages $(apko-path) --arch $$arch --format "packagelock-source" | \
+			sed 's/^- \([^=]*\)=.*/\1/' | \
+			xargs apk fetch --repositories-file /etc/apk/repositories --output $(REPO)/$$arch --recursive; \
+		\
+		echo "Step 3/4: Generating checksum file..."; \
+		(cd $(REPO)/$$arch && \
+			find . -maxdepth 1 -name "*.apk" -type f -exec sha256sum {} \; | sort -k2 > checksum.txt); \
+		echo "✓ Download complete. Checksum file created at $(REPO)/$$arch/checksum.txt"; \
+		\
+		echo "Step 4/4: Generating APKINDEX..."; \
+		$(MAKE) pkg/index arch=$$arch || exit 1; \
+	done
+	@echo ""
+	@echo "=== Download completed for: $(archs) ==="
 
-	@# Step 1: Update index
-	@echo "Step 1/4: Updating remote index..."
-	@apk update
-
-	@# Step 2: Fetch packages
-	@echo "Step 2/4: Fetching packages..."
-	@mkdir -p $(REPO)/$(arch)
-	$(APKO) show-packages $(apko-path) --arch $(arch) --format "packagelock-source" | \
-		sed 's/^- \([^=]*\)=.*/\1/' | \
-		xargs apk fetch --repositories-file /etc/apk/repositories --output $(REPO)/$(arch) --recursive
-
-	@# Step 3: Generate checksums
-	@echo "Step 3/4: Generating checksum file..."
-	@cd $(REPO)/$(arch) && \
-		find . -maxdepth 1 -name "*.apk" -type f -exec sha256sum {} \; | sort -k2 > checksum.txt
-	@echo "✓ Download complete. Checksum file created at $(REPO)/$(arch)/checksum.txt"
-	@echo "Step 4/4: Generating APKINDEX..."
-	$(MAKE) pkg/index name=$(name) tag=$(tag) arch=$(arch)
+.PHONY: pkg/download-all
+pkg/download-all: ## Download packages from all apko config files (specify arch=<arch> or download both)
+	$(eval arch_normalized := $(if $(arch),$(shell echo $(arch) | sed 's/amd64/x86_64/;s/arm64/aarch64/'),))
+	$(eval archs := $(if $(arch_normalized),$(arch_normalized),x86_64 aarch64))
+	@echo "=== Downloading packages from all apko config files ==="
+	@echo "Architectures: $(archs)"
+	@if [ ! -d "$(IMAGES_DIR)" ]; then \
+		echo "Error: Images directory not found: $(IMAGES_DIR)"; \
+		exit 1; \
+	fi
+	@find $(IMAGES_DIR) -type f -name "*.apko.yaml" | while read -r config_file; do \
+		rel_path=$${config_file#$(IMAGES_DIR)/}; \
+		name=$$(echo $$rel_path | cut -d'/' -f1); \
+		tag=$$(basename $$rel_path .apko.yaml); \
+		for arch in $(archs); do \
+			echo ""; \
+			echo ">>> Processing: $$name/$$tag [$$arch]"; \
+			$(MAKE) pkg/download name=$$name tag=$$tag arch=$$arch || { \
+				echo "✗ Failed to download packages for $$name:$$tag [$$arch]"; \
+				exit 1; \
+			}; \
+		done; \
+	done
+	@echo ""
+	@echo "=== All packages downloaded successfully ==="
 
 # 2. Verify Package Integrity
 .PHONY: pkg/verify
