@@ -93,6 +93,16 @@ pkg/clean: ## Clean built packages and kernel artifacts
 pkg/clean-cache: ## Clean melange build cache
 	rm -rf ${CACHEDIR}
 
+.PHONY: pkg/fetch-url
+pkg/fetch-url: ## Fetch and download APK from URL to /work/packages/$(ARCH)
+	@if [ -z "$(URL)" ]; then URL=$(filter-out $@, $(MAKECMDGOALS)); fi
+	@if [ -z "$(URL)" ]; then echo "Usage: make pkg/fetch-url <url> or make pkg/fetch-url URL=<url>"; exit 1; fi
+	mkdir -p $(REPO)/$(ARCH)
+	curl -L -o $(REPO)/$(ARCH)/$(shell basename $(URL)) $(URL)
+
+%:
+	@:
+
 # ${CACHEDIR}/.libraries_token.txt: pkg/cache
 # 	tmpf=$(shell mktemp); \
 # 	chainctl auth login --audience libraries.cgr.dev; \

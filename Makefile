@@ -9,7 +9,7 @@
 # Quick Start:
 #   make help          # Show all available commands
 #   make dev           # Start development environment
-#   make dev-container-image  # Enter Wolfi build container
+#   make wolfi-dev  # Enter Wolfi build container
 # =============================================================================
 
 .DEFAULT_GOAL := help
@@ -197,8 +197,8 @@ keygen: ## Generate melange signing key
 	fi
 
 # Enter Wolfi SDK container for OS package development
-.PHONY: dev-container
-dev-container: ## Enter Wolfi SDK container for package development
+.PHONY: wolfi-dev-os
+wolfi-dev-os: ## Enter Wolfi SDK container for package development
 	docker run $(DOCKER_PLATFORM_ARG) --pull=always --privileged --rm -it \
 		--entrypoint="/bin/bash" \
 	    -v "${HOST_OS_DIR}:${HOST_OS_DIR}" \
@@ -235,9 +235,9 @@ endif
 
 # Enter Wolfi SDK container for building images with apko
 # This is the main container for building OCI images
-# Usage: make dev-container-image [HOST_OUT_DIR=/path/to/output]
-.PHONY: dev-container-image
-dev-container-image: keygen ## Enter Wolfi SDK container for building images (main build environment)
+# Usage: make wolfi-dev [HOST_OUT_DIR=/path/to/output]
+.PHONY: wolfi-dev
+wolfi-dev: keygen ## Enter Wolfi SDK container for building images (main build environment)
 	$(eval TMP_REPOS_DIR := $(shell mktemp --tmpdir -d "$@.XXXXXX"))
 	$(eval TMP_REPOS_FILE := $(TMP_REPOS_DIR)/repositories)
 	$(eval HOST_OUT_DIR ?= $(shell echo $${HOST_OUT_DIR:-$$(mktemp --tmpdir -d "$@-out.XXXXXX")}))
