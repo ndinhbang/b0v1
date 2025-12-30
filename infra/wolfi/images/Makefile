@@ -39,6 +39,7 @@ endif
 IMAGES_DIR ?= /work/os
 OUT_DIR ?= /work/out
 IMAGE_CACHE_DIR ?= /work/out/.cache
+PACKAGES_DIR ?= /work/packages
 
 # Default values for image building (can be overridden via command line)
 # Example: make image name=nginx tag=v1.0 arch=arm64
@@ -130,9 +131,9 @@ image/show-packages: image/validate-params ## Show packages in apko config (requ
 		$(if $(filter 1,$(cache)),--cache-dir $(IMAGE_CACHE_DIR),) \
 		$(if $(filter 1,$(offline)),--offline,)
 
-# Perform the full build process: lock, image, and load
+# Perform the full build process: lock, image, and download packages
 .PHONY: image/build
-image/build: image/lock image/image ## Generate lock file and build image
+image/build: image/lock image/image image/download-packages## Generate lock file and build image
 
 # Tag and push the image to the Docker registry
 .PHONY: image/publish
@@ -157,82 +158,56 @@ image/publish: image/lock image/validate-params ## Publish image to registry (re
 # Offline Build Support
 # =============================================================================
 
-# Download packages for offline builds
-# Usage: make image/download-packages name=laravel tag=latest-dev
-# This downloads all required packages to build the image without internet access
+# 1. Download Packages
 .PHONY: image/download-packages
-image/download-packages: image/validate-params ## Download packages for offline builds (requires name= tag=)
+image/download-packages: image/validate-params ## Download packages & create checksum file
 	$(eval apko-path := $(IMAGES_DIR)/$(name)/$(tag).apko.yaml)
-	$(eval offline := 0)
-	$(eval cache := 0)
 	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
 	@echo "=== Downloading packages for $(name):$(tag) ==="
-	@echo "Architecture: $(arch)"
 	@echo "Config: $(apko-path)"
-	@echo "Target: $(OUT_DIR)/packages/$(arch)"
-	@echo ""
-	@echo "Updating package index..."
-	apk update
-	@echo "Extracting package list..."
-	mkdir -p $(OUT_DIR)/packages/$(arch) && \
-	$(APKO) show-packages $(apko-path) \
-		--arch $(arch) \
-		--workdir $(OUT_DIR)/$(name) \
-		--log-level $(log_level) \
-		--format "packagelock-source" \
-		$(if $(filter 1,$(cache)),--cache-dir $(IMAGE_CACHE_DIR),) \
-		$(if $(filter 1,$(offline)),--offline,) | \
-		sed 's/^- \([^=]*\)=.*/\1/' | \
-		xargs apk fetch \
-			--repositories-file /etc/apk/repositories \
-			--output $(OUT_DIR)/packages/$(arch) \
-			--recursive
-	@echo ""
-	@echo "✓ Packages downloaded to: $(OUT_DIR)/packages/$(arch)"
-	@echo "  Run 'make image/gen-apkindex' to generate the package index"
+	@echo "Target: $(PACKAGES_DIR)/$(arch)"
 
-# Generate APKINDEX from downloaded packages
-# This creates a local package repository that can be used for offline builds
-.PHONY: image/gen-apkindex
-image/gen-apkindex: ## Generate APKINDEX from downloaded packages
+	@# Step 1: Update index
+	@echo "Step 1/4: Updating remote index..."
+	@apk update
+
+	@# Step 2: Fetch packages
+	@echo "Step 2/4: Fetching packages..."
+	@mkdir -p $(PACKAGES_DIR)/$(arch)
+	$(APKO) show-packages $(apko-path) --arch $(arch) --format "packagelock-source" | \
+		sed 's/^- \([^=]*\)=.*/\1/' | \
+		xargs apk fetch --repositories-file /etc/apk/repositories --output $(PACKAGES_DIR)/$(arch) --recursive
+
+	@# Step 3: Generate checksums
+	@echo "Step 3/4: Generating checksum file..."
+	@cd $(PACKAGES_DIR)/$(arch) && \
+		find . -maxdepth 1 -name "*.apk" -type f -exec sha256sum {} \; | sort -k2 > checksum.txt
+	@echo "✓ Download complete. Checksum file created at $(PACKAGES_DIR)/$(arch)/checksum.txt"
+	@echo "Step 4/4: Generating APKINDEX..."
+	$(MAKE) image/gen-apkindex name=$(name) tag=$(tag) arch=$(arch)
+
+# 2. Verify Package Integrity
+.PHONY: image/verify-packages
+image/verify-packages: ## Verify integrity of downloaded packages using checksum.txt
 	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
-	@echo "=== Generating APKINDEX ==="
-	@echo "Architecture: $(arch)"
-	@echo "Directory: $(OUT_DIR)/packages/$(arch)"
-	@echo ""
-	@if [ ! -d $(OUT_DIR)/packages/$(arch) ] || [ -z "$$(ls -A $(OUT_DIR)/packages/$(arch)/*.apk 2>/dev/null)" ]; then \
-		echo "✗ Error: No APK files found in $(OUT_DIR)/packages/$(arch)"; \
-		echo "  Please run 'make image/download-packages name=<name> tag=<tag>' first"; \
+	@echo "=== Verifying Package Integrity ==="
+	@if [ ! -f "$(PACKAGES_DIR)/$(arch)/checksum.txt" ]; then \
+		echo "✗ Error: checksum.txt not found. Run 'make image/download-packages' first."; \
 		exit 1; \
 	fi
-	@echo "Step 1/3: Verifying APK packages..."
-	@count=0; \
-	for apk in $(OUT_DIR)/packages/$(arch)/*.apk; do \
-		if [ -f "$$apk" ]; then \
-			count=$$((count + 1)); \
-			printf "  [%d] %s ... " "$$count" "$$(basename $$apk)"; \
-			if apk verify "$$apk" >/dev/null 2>&1; then \
-				echo "✓"; \
-			else \
-				echo "✗ FAILED"; \
-				echo ""; \
-				echo "✗ Verification failed for $$apk"; \
-				exit 1; \
-			fi; \
-		fi; \
-	done; \
-	echo "  ✓ All $$count packages verified successfully"
-	@echo ""
-	@echo "Step 2/3: Generating APKINDEX..."
-	@melange index --output $(OUT_DIR)/packages/$(arch)/APKINDEX.tar.gz $(OUT_DIR)/packages/$(arch)/*.apk && \
-		echo "  ✓ APKINDEX generated"
-	@echo ""
-	@echo "Step 3/3: Signing APKINDEX..."
-	@melange sign-index --signing-key /etc/apk/keys/local-melange.rsa $(OUT_DIR)/packages/$(arch)/APKINDEX.tar.gz && \
-		echo "  ✓ APKINDEX signed"
-	@echo ""
-	@echo "✓ Complete! Local package repository ready at:"
-	@echo "  $(OUT_DIR)/packages/$(arch)/APKINDEX.tar.gz"
-	@echo ""
-	@echo "You can now use this for offline builds by configuring your apko.yaml"
-	@echo "to use the local repository: $(OUT_DIR)/packages/$(arch)"
+	@cd $(PACKAGES_DIR)/$(arch) && \
+		sha256sum -c checksum.txt 2>&1 | \
+		awk '/OK$$/ {ok++} /FAILED$$/ {fail++; printf "  ✗ FAILED: %s\n", $$1} END { \
+			if(ok>0) print "✓ Verified: " ok " packages"; \
+			if(fail>0) { print "✗ Failed: " fail " packages"; exit 1 } \
+			else if(ok==0) { print "⚠ No files to verify"; } \
+		}'
+
+# 3. Generate APKINDEX
+.PHONY: image/gen-apkindex
+image/gen-apkindex: image/verify-packages ## Verify packages then generate APKINDEX
+	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
+	@echo "=== Generating APKINDEX ==="
+	@melange index --output $(PACKAGES_DIR)/$(arch)/APKINDEX.tar.gz $(PACKAGES_DIR)/$(arch)/*.apk
+	@melange sign-index --signing-key /etc/apk/keys/local-melange.rsa $(PACKAGES_DIR)/$(arch)/APKINDEX.tar.gz
+	@echo "✓ APKINDEX generated at $(PACKAGES_DIR)/$(arch)/APKINDEX.tar.gz"

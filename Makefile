@@ -9,7 +9,7 @@
 # Quick Start:
 #   make help          # Show all available commands
 #   make dev           # Start development environment
-#   make dev-container-wolfi  # Enter Wolfi build container
+#   make dev-container-image  # Enter Wolfi build container
 # =============================================================================
 
 .DEFAULT_GOAL := help
@@ -63,43 +63,6 @@ prune-all: ## Clean up all Docker resources (images, containers, volumes)
 .PHONY: digests
 digests: ## List all Docker images with digests
 	docker images --digests > digests.txt
-
-##@ Wolfi & Chainguard Images
-
-# Run the Wolfi base image interactively
-.PHONY: wolfi
-wolfi: ## Run Wolfi base image interactively
-	docker run -it --rm --pull=always cgr.dev/chainguard/wolfi-base
-
-# Run the apko image and display its version
-.PHONY: apko
-apko: ## Show apko version
-	docker run --rm --pull=always cgr.dev/chainguard/apko version
-
-# Run the melange image and display its version
-.PHONY: melange
-melange: ## Show melange version
-	docker run --rm --pull=always cgr.dev/chainguard/melange version
-
-# Run the Wolfi SDK image
-.PHONY: sdk
-sdk: ## Run Wolfi SDK image
-	docker run --rm --pull=always ghcr.io/wolfi-dev/sdk
-
-# Run the crane image and display its version
-.PHONY: crane
-crane: ## Show crane version
-	docker run --rm --pull=always cgr.dev/chainguard/crane version
-
-# Run the Chainguard Laravel image interactively
-.PHONY: laravel
-laravel: ## Run Laravel image interactively
-	docker run -it --rm --pull=always cgr.dev/chainguard/laravel:latest-dev
-
-# Run the Chainguard Nginx image interactively
-.PHONY: nginx
-nginx: ## Run Nginx image interactively
-	docker run -it --rm --pull=always cgr.dev/chainguard/nginx:latest-dev
 
 ##@ Image Testing & Analysis
 
@@ -206,6 +169,7 @@ REPO := ${HOST_OS_DIR}/packages
 CONTAINER_OUT_DIR := /work/out
 CONTAINER_OS_DIR := /work/os
 CONTAINER_PACKAGES_DIR := /work/packages
+CONTAINER_IMAGES_DIR := /work/images
 IMAGE_CACHE_DIR ?= ${CONTAINER_OUT_DIR}/.cache
 
 # Backward compatibility aliases (deprecated, use HOST_* and CONTAINER_* instead)
@@ -255,6 +219,7 @@ local-wolfi: keygen ## Test local packages in Wolfi base container
 	$(eval TMP_REPOS_DIR := $(shell mktemp --tmpdir -d "$@.XXXXXX"))
 	$(eval TMP_REPOS_FILE := $(TMP_REPOS_DIR)/repositories)
 	echo "https://packages.wolfi.dev/os" > $(TMP_REPOS_FILE)
+	echo "https://packages.cgr.dev/extras" > $(TMP_REPOS_FILE)
 	echo "$(CONTAINER_PACKAGES_DIR)" >> $(TMP_REPOS_FILE)
 ifneq ($(LOCAL_WOLFI_EXTRA_REPO),)
 	echo "$(LOCAL_WOLFI_EXTRA_REPO)" >> $(TMP_REPOS_FILE)
@@ -271,9 +236,9 @@ endif
 
 # Enter Wolfi SDK container for building images with apko
 # This is the main container for building OCI images
-# Usage: make dev-container-wolfi [HOST_OUT_DIR=/path/to/output]
-.PHONY: dev-container-wolfi
-dev-container-wolfi: keygen ## Enter Wolfi SDK container for building images (main build environment)
+# Usage: make dev-container-image [HOST_OUT_DIR=/path/to/output]
+.PHONY: dev-container-image
+dev-container-image: keygen ## Enter Wolfi SDK container for building images (main build environment)
 	$(eval TMP_REPOS_DIR := $(shell mktemp --tmpdir -d "$@.XXXXXX"))
 	$(eval TMP_REPOS_FILE := $(TMP_REPOS_DIR)/repositories)
 	$(eval HOST_OUT_DIR ?= $(shell echo $${HOST_OUT_DIR:-$$(mktemp --tmpdir -d "$@-out.XXXXXX")}))
@@ -282,6 +247,7 @@ dev-container-wolfi: keygen ## Enter Wolfi SDK container for building images (ma
 	@echo "Container output directory: $(CONTAINER_OUT_DIR)"
 	@echo ""
 	echo "https://packages.wolfi.dev/os" > $(TMP_REPOS_FILE)
+	echo "https://packages.cgr.dev/extras" > $(TMP_REPOS_FILE)
 	echo "$(CONTAINER_PACKAGES_DIR)" >> $(TMP_REPOS_FILE)
 ifneq ($(LOCAL_WOLFI_EXTRA_REPO),)
 	echo "$(LOCAL_WOLFI_EXTRA_REPO)" >> $(TMP_REPOS_FILE)
@@ -290,8 +256,9 @@ endif
 		--entrypoint="/bin/bash" \
 		--mount type=bind,source="${HOST_IMAGES_OUT_DIR}",destination="$(CONTAINER_OUT_DIR)" \
 		--mount type=bind,source="${HOST_IMAGES_DIR}",destination="$(CONTAINER_OS_DIR)",readonly \
-		--mount type=bind,source="${HOST_PACKAGES_OUT_DIR}",destination="$(CONTAINER_PACKAGES_DIR)",readonly \
+		--mount type=bind,source="${HOST_PACKAGES_OUT_DIR}",destination="$(CONTAINER_PACKAGES_DIR)" \
 		--mount type=bind,source="${HOST_OS_DIR}/$(KEY).pub",destination="/etc/apk/keys/$(KEY).pub",readonly \
+		--mount type=bind,source="${HOST_OS_DIR}/$(KEY)",destination="/etc/apk/keys/$(KEY)",readonly \
 		--mount type=bind,source="$(TMP_REPOS_FILE)",destination="/etc/apk/repositories",readonly \
 		-w "$(CONTAINER_OS_DIR)" \
 		ghcr.io/wolfi-dev/sdk:latest -il
