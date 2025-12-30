@@ -36,10 +36,11 @@ endif
 # --- DEFAULT VARIABLES ---
 
 # Host directory (on your local machine) - where apko config files are located
-IMAGES_DIR ?= /work/os
+IMAGES_DIR ?= /work/images
 OUT_DIR ?= /work/out
-IMAGE_CACHE_DIR ?= /work/out/.cache
-PACKAGES_DIR ?= /work/packages
+IMAGES_OUT_DIR ?= ${OUT_DIR}/images
+IMAGE_CACHE_DIR ?= ${OUT_DIR}/.cache
+PACKAGES_OUT_DIR ?= ${OUT_DIR}/packages
 
 # Default values for image building (can be overridden via command line)
 # Example: make image name=nginx tag=v1.0 arch=arm64
@@ -77,25 +78,25 @@ image/validate-params:
 image/lock: image/validate-params ## Generate lock file for reproducible builds (requires name= tag=)
 	$(eval cache := 0)
 	@echo "Generating lock file for $(name):$(tag)..."
-	mkdir -p $(OUT_DIR)/$(name)/$(tag) && \
+	mkdir -p $(IMAGES_OUT_DIR)/$(name)/$(tag) && \
 	$(APKO) lock $(IMAGES_DIR)/$(name)/$(tag).apko.yaml \
 		--log-level $(log_level) \
-		--workdir $(OUT_DIR)/$(name) \
-		--output $(OUT_DIR)/$(name)/$(tag)/apko.lock.json \
+		--workdir $(IMAGES_OUT_DIR)/$(name) \
+		--output $(IMAGES_OUT_DIR)/$(name)/$(tag)/apko.lock.json \
 		$(if $(filter 1,$(cache)),--cache-dir $(IMAGE_CACHE_DIR),)
-	@echo "✓ Lock file generated at $(OUT_DIR)/$(name)/$(tag)/apko.lock.json"
+	@echo "✓ Lock file generated at $(IMAGES_OUT_DIR)/$(name)/$(tag)/apko.lock.json"
 
 # Build a minimal root filesystem using apko
 # Useful for creating base images without full OCI image layers
 .PHONY: image/rootfs
 image/rootfs: image/validate-params ## Build minimal root filesystem (requires name= tag=)
 	@echo "Building minimal rootfs for $(name):$(tag)..."
-	mkdir -p $(OUT_DIR)/$(name)/$(tag) && \
-	$(APKO) build-minirootfs $(IMAGES_DIR)/$(name)/$(tag).apko.yaml $(OUT_DIR)/$(name)/$(tag)/minirootfs.tar.gz \
+	mkdir -p $(IMAGES_OUT_DIR)/$(name)/$(tag) && \
+	$(APKO) build-minirootfs $(IMAGES_DIR)/$(name)/$(tag).apko.yaml $(IMAGES_OUT_DIR)/$(name)/$(tag)/minirootfs.tar.gz \
 		--build-arch $(arch) \
-		--workdir $(OUT_DIR)/$(name) \
+		--workdir $(IMAGES_OUT_DIR)/$(name) \
 		--log-level $(log_level)
-	@echo "✓ Minimal rootfs generated at $(OUT_DIR)/$(name)/$(tag)/minirootfs.tar.gz"
+	@echo "✓ Minimal rootfs generated at $(IMAGES_OUT_DIR)/$(name)/$(tag)/minirootfs.tar.gz"
 
 # Build a container image using apko
 # This is the main target for building complete OCI images
@@ -104,17 +105,17 @@ image/image: image/validate-params ## Build container image (requires name= tag=
 	$(eval offline := 0)
 	$(eval cache := 0)
 	@echo "Building image $(registry)/$(name):$(tag)..."
-	mkdir -p $(OUT_DIR)/$(name)/$(tag) && \
-	$(APKO) build $(IMAGES_DIR)/$(name)/$(tag).apko.yaml $(registry)/$(name):$(tag) $(OUT_DIR)/$(name)/$(tag)/image.tar \
+	mkdir -p $(IMAGES_OUT_DIR)/$(name)/$(tag) && \
+	$(APKO) build $(IMAGES_DIR)/$(name)/$(tag).apko.yaml $(registry)/$(name):$(tag) $(IMAGES_OUT_DIR)/$(name)/$(tag)/image.tar \
 		--log-level $(log_level) \
-		--workdir $(OUT_DIR)/$(name) \
-		--sbom-path $(OUT_DIR)/$(name)/$(tag) \
-		--lockfile $(OUT_DIR)/$(name)/$(tag)/apko.lock.json \
+		--workdir $(IMAGES_OUT_DIR)/$(name) \
+		--sbom-path $(IMAGES_OUT_DIR)/$(name)/$(tag) \
+		--lockfile $(IMAGES_OUT_DIR)/$(name)/$(tag)/apko.lock.json \
 		$(if $(filter 1,$(cache)),--cache-dir $(IMAGE_CACHE_DIR),) \
 		$(if $(filter 1,$(offline)),--offline,)
 	@echo "✓ Image built successfully: $(registry)/$(name):$(tag)"
-	@echo "  - Tarball: $(OUT_DIR)/$(name)/$(tag)/image.tar"
-	@echo "  - SBOM: $(OUT_DIR)/$(name)/$(tag)/"
+	@echo "  - Tarball: $(IMAGES_OUT_DIR)/$(name)/$(tag)/image.tar"
+	@echo "  - SBOM: $(IMAGES_OUT_DIR)/$(name)/$(tag)/"
 
 # Show the packages included in the apko YAML configuration
 # Useful for debugging and understanding what will be installed
@@ -125,7 +126,7 @@ image/show-packages: image/validate-params ## Show packages in apko config (requ
 	@echo "Packages for $(name):$(tag):"
 	$(APKO) show-packages $(IMAGES_DIR)/$(name)/$(tag).apko.yaml \
 		--arch $(arch) \
-		--workdir $(OUT_DIR)/$(name) \
+		--workdir $(IMAGES_OUT_DIR)/$(name) \
 		--log-level $(log_level) \
 		--format "packagelock-source" \
 		$(if $(filter 1,$(cache)),--cache-dir $(IMAGE_CACHE_DIR),) \
@@ -143,10 +144,10 @@ image/publish: image/lock image/validate-params ## Publish image to registry (re
 	$(eval cache := 0)
 	@echo "Publishing image $(registry)/$(name):$(tag)..."
 	$(APKO) publish $(IMAGES_DIR)/$(name)/$(tag).apko.yaml $(registry)/$(name):$(tag) $(registry_backup)/$(name):$(tag) \
-		--workdir $(OUT_DIR)/$(name) \
+		--workdir $(IMAGES_OUT_DIR)/$(name) \
 		--log-level $(log_level) \
-		--lockfile $(OUT_DIR)/$(name)/$(tag)/apko.lock.json \
-		--image-refs $(OUT_DIR)/$(name)/$(tag)/.digests \
+		--lockfile $(IMAGES_OUT_DIR)/$(name)/$(tag)/apko.lock.json \
+		--image-refs $(IMAGES_OUT_DIR)/$(name)/$(tag)/.digests \
 		$(if $(filter 1,$(cache)),--cache-dir $(IMAGE_CACHE_DIR),) \
 		$(if $(filter 1,$(offline)),--offline,) \
 		$(if $(filter 1,$(local)),--local,) ; \
@@ -154,60 +155,3 @@ image/publish: image/lock image/validate-params ## Publish image to registry (re
 	@echo "  - $(registry)/$(name):$(tag)"
 	@echo "  - $(registry_backup)/$(name):$(tag)"
 
-# =============================================================================
-# Offline Build Support
-# =============================================================================
-
-# 1. Download Packages
-.PHONY: image/download-packages
-image/download-packages: image/validate-params ## Download packages & create checksum file
-	$(eval apko-path := $(IMAGES_DIR)/$(name)/$(tag).apko.yaml)
-	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
-	@echo "=== Downloading packages for $(name):$(tag) ==="
-	@echo "Config: $(apko-path)"
-	@echo "Target: $(PACKAGES_DIR)/$(arch)"
-
-	@# Step 1: Update index
-	@echo "Step 1/4: Updating remote index..."
-	@apk update
-
-	@# Step 2: Fetch packages
-	@echo "Step 2/4: Fetching packages..."
-	@mkdir -p $(PACKAGES_DIR)/$(arch)
-	$(APKO) show-packages $(apko-path) --arch $(arch) --format "packagelock-source" | \
-		sed 's/^- \([^=]*\)=.*/\1/' | \
-		xargs apk fetch --repositories-file /etc/apk/repositories --output $(PACKAGES_DIR)/$(arch) --recursive
-
-	@# Step 3: Generate checksums
-	@echo "Step 3/4: Generating checksum file..."
-	@cd $(PACKAGES_DIR)/$(arch) && \
-		find . -maxdepth 1 -name "*.apk" -type f -exec sha256sum {} \; | sort -k2 > checksum.txt
-	@echo "✓ Download complete. Checksum file created at $(PACKAGES_DIR)/$(arch)/checksum.txt"
-	@echo "Step 4/4: Generating APKINDEX..."
-	$(MAKE) image/gen-apkindex name=$(name) tag=$(tag) arch=$(arch)
-
-# 2. Verify Package Integrity
-.PHONY: image/verify-packages
-image/verify-packages: ## Verify integrity of downloaded packages using checksum.txt
-	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
-	@echo "=== Verifying Package Integrity ==="
-	@if [ ! -f "$(PACKAGES_DIR)/$(arch)/checksum.txt" ]; then \
-		echo "✗ Error: checksum.txt not found. Run 'make image/download-packages' first."; \
-		exit 1; \
-	fi
-	@cd $(PACKAGES_DIR)/$(arch) && \
-		sha256sum -c checksum.txt 2>&1 | \
-		awk '/OK$$/ {ok++} /FAILED$$/ {fail++; printf "  ✗ FAILED: %s\n", $$1} END { \
-			if(ok>0) print "✓ Verified: " ok " packages"; \
-			if(fail>0) { print "✗ Failed: " fail " packages"; exit 1 } \
-			else if(ok==0) { print "⚠ No files to verify"; } \
-		}'
-
-# 3. Generate APKINDEX
-.PHONY: image/gen-apkindex
-image/gen-apkindex: image/verify-packages ## Verify packages then generate APKINDEX
-	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
-	@echo "=== Generating APKINDEX ==="
-	@melange index --output $(PACKAGES_DIR)/$(arch)/APKINDEX.tar.gz $(PACKAGES_DIR)/$(arch)/*.apk
-	@melange sign-index --signing-key /etc/apk/keys/local-melange.rsa $(PACKAGES_DIR)/$(arch)/APKINDEX.tar.gz
-	@echo "✓ APKINDEX generated at $(PACKAGES_DIR)/$(arch)/APKINDEX.tar.gz"

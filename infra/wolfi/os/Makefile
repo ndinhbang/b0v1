@@ -6,6 +6,9 @@ help: ## Show this help message
 	@echo 'Available targets:'
 	@awk '$$0 ~ "^[a-zA-Z_/-][a-zA-Z0-9_/-]*:.*##" { split($$0, a, ": .*## "); printf "  \033[36m%-25s\033[0m %s\n", a[1], a[2] } $$0 ~ "[a-zA-Z_/-][a-zA-Z0-9_/-]*/%:.*##" { match($$0, "[a-zA-Z_/-][a-zA-Z0-9_/-]*/%"); target = substr($$0, RSTART, RLENGTH); split($$0, a, ": .*## "); printf "  \033[36m%-25s\033[0m %s\n", target, a[2] }' $(MAKEFILE_LIST)
 
+# =============================================================================
+# Package Build Configuration
+# =============================================================================
 USE_CACHE ?= no
 ARCH ?= $(shell uname -m)
 ifeq (${ARCH}, arm64)
@@ -18,10 +21,12 @@ else
 endif
 # TARGETDIR = packages/${ARCH}
 
+APKO ?= $(shell which apko)
 MELANGE ?= $(shell which melange)
 WOLFICTL ?= $(shell which wolfictl)
 KEY ?= local-melange.rsa
-REPO ?= /work/packages
+REPO ?= /work/out/packages
+IMAGES_DIR ?= /work/images
 # QEMU_KERNEL_REPO := https://apk.cgr.dev/chainguard-private/
 
 # MELANGE_RUNNER ?= qemu
@@ -77,6 +82,10 @@ WOLFI_KEY ?= https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
 MELANGE_OPTS += -k ${WOLFI_KEY}
 MELANGE_OPTS += -r ${WOLFI_REPO}
 
+# =============================================================================
+# Package Build Targets
+# =============================================================================
+
 ${KEY}:
 	${MELANGE} keygen ${KEY}
 
@@ -102,6 +111,70 @@ pkg/fetch-url: ## Fetch and download APK from URL to /work/packages/$(ARCH)
 
 %:
 	@:
+
+# =============================================================================
+# Offline Build Support
+# =============================================================================
+
+# 1. Download Packages
+.PHONY: pkg/download
+pkg/download: ## Download packages from apko config file & create checksum file
+	$(eval name ?= laravel)
+	$(eval tag ?= latest-dev)
+	$(eval apko-path := $(IMAGES_DIR)/$(name)/$(tag).apko.yaml)
+	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
+	@test -f "$(IMAGES_DIR)/$(name)/$(tag).apko.yaml" || \
+		(echo "Error: Config file not found: $(IMAGES_DIR)/$(name)/$(tag).apko.yaml"; exit 1)
+	@echo "=== Downloading packages for $(name):$(tag) ==="
+	@echo "Config: $(apko-path)"
+	@echo "Target: $(REPO)/$(arch)"
+
+	@# Step 1: Update index
+	@echo "Step 1/4: Updating remote index..."
+	@apk update
+
+	@# Step 2: Fetch packages
+	@echo "Step 2/4: Fetching packages..."
+	@mkdir -p $(REPO)/$(arch)
+	$(APKO) show-packages $(apko-path) --arch $(arch) --format "packagelock-source" | \
+		sed 's/^- \([^=]*\)=.*/\1/' | \
+		xargs apk fetch --repositories-file /etc/apk/repositories --output $(REPO)/$(arch) --recursive
+
+	@# Step 3: Generate checksums
+	@echo "Step 3/4: Generating checksum file..."
+	@cd $(REPO)/$(arch) && \
+		find . -maxdepth 1 -name "*.apk" -type f -exec sha256sum {} \; | sort -k2 > checksum.txt
+	@echo "✓ Download complete. Checksum file created at $(REPO)/$(arch)/checksum.txt"
+	@echo "Step 4/4: Generating APKINDEX..."
+	$(MAKE) pkg/index name=$(name) tag=$(tag) arch=$(arch)
+
+# 2. Verify Package Integrity
+.PHONY: pkg/verify
+pkg/verify: ## Verify integrity of downloaded packages using checksum.txt
+	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
+	@echo "=== Verifying Package Integrity ==="
+	@if [ ! -f "$(REPO)/$(arch)/checksum.txt" ]; then \
+		echo "✗ Error: checksum.txt not found. Run 'make pkg/download' first."; \
+		exit 1; \
+	fi
+	@cd $(REPO)/$(arch) && \
+		sha256sum -c checksum.txt 2>&1 | \
+		awk '/OK$$/ {ok++} /FAILED$$/ {fail++; printf "  ✗ FAILED: %s\n", $$1} END { \
+			if(ok>0) print "✓ Verified: " ok " packages"; \
+			if(fail>0) { print "✗ Failed: " fail " packages"; exit 1 } \
+			else if(ok==0) { print "⚠ No files to verify"; } \
+		}'
+
+# 3. Generate APKINDEX
+.PHONY: pkg/index
+pkg/index: pkg/verify ## Verify packages then generate APKINDEX
+	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
+	@echo "=== Generating APKINDEX ==="
+	$(MELANGE) index --output $(REPO)/$(arch)/APKINDEX.tar.gz $(REPO)/$(arch)/*.apk
+	$(MELANGE) sign-index --signing-key /etc/apk/keys/local-melange.rsa $(REPO)/$(arch)/APKINDEX.tar.gz
+	@echo "✓ APKINDEX generated at $(REPO)/$(arch)/APKINDEX.tar.gz"
+
+# =============================================================================
 
 # ${CACHEDIR}/.libraries_token.txt: pkg/cache
 # 	tmpf=$(shell mktemp); \

@@ -167,8 +167,9 @@ KEY ?= local-melange.rsa
 # Container directories (inside Docker container)
 CONTAINER_OUT_DIR := /work/out
 CONTAINER_OS_DIR := /work/os
-CONTAINER_PACKAGES_DIR := /work/packages
 CONTAINER_IMAGES_DIR := /work/images
+CONTAINER_PACKAGES_OUT_DIR := ${CONTAINER_OUT_DIR}/packages
+CONTAINER_IMAGES_OUT_DIR := ${CONTAINER_OUT_DIR}/images
 IMAGE_CACHE_DIR ?= ${CONTAINER_OUT_DIR}/.cache
 
 # Backward compatibility aliases (deprecated, use HOST_* and CONTAINER_* instead)
@@ -177,7 +178,7 @@ OS_DIR := ${HOST_OS_DIR}
 OUT_DIR := ${HOST_OUT_DIR}
 OUT_LOCAL_DIR := ${CONTAINER_OUT_DIR}
 OS_LOCAL_DIR := ${CONTAINER_OS_DIR}
-PACKAGES_CONTAINER_FOLDER := ${CONTAINER_PACKAGES_DIR}
+PACKAGES_CONTAINER_FOLDER := ${CONTAINER_PACKAGES_OUT_DIR}
 USE_CACHE ?= no
 
 # =============================================================================
@@ -202,8 +203,11 @@ wolfi-dev-os: ## Enter Wolfi SDK container for package development
 	docker run $(DOCKER_PLATFORM_ARG) --pull=always --privileged --rm -it \
 		--entrypoint="/bin/bash" \
 	    -v "${HOST_OS_DIR}:${HOST_OS_DIR}" \
-		-v "${HOST_PACKAGES_OUT_DIR}:${CONTAINER_PACKAGES_DIR}" \
+		-v "${HOST_OUT_DIR}:${CONTAINER_OUT_DIR}" \
 		--mount type=bind,source="${ROOT_DIR}/.git",destination="${HOST_OS_DIR}/.git",readonly \
+		--mount type=bind,source="${HOST_IMAGES_DIR}",destination="${CONTAINER_IMAGES_DIR}",readonly \
+		--mount type=bind,source="${HOST_OS_DIR}/$(KEY).pub",destination="/etc/apk/keys/$(KEY).pub",readonly \
+		--mount type=bind,source="${HOST_OS_DIR}/$(KEY)",destination="/etc/apk/keys/$(KEY)",readonly \
 		-v /tmp:/tmp \
 		-v /var/run/docker.sock:/var/run/docker.sock \
 	    -w "${HOST_OS_DIR}" \
@@ -214,21 +218,21 @@ wolfi-dev-os: ## Enter Wolfi SDK container for package development
 # Test local packages in Wolfi base container
 .PHONY: local-wolfi
 local-wolfi: keygen ## Test local packages in Wolfi base container
-	mkdir -p "${HOST_OS_DIR}/packages"
+	mkdir -p "${HOST_PACKAGES_OUT_DIR}"
 	$(eval TMP_REPOS_DIR := $(shell mktemp --tmpdir -d "$@.XXXXXX"))
 	$(eval TMP_REPOS_FILE := $(TMP_REPOS_DIR)/repositories)
 	echo "https://packages.wolfi.dev/os" > $(TMP_REPOS_FILE)
 	echo "https://packages.cgr.dev/extras" >> $(TMP_REPOS_FILE)
-	echo "$(CONTAINER_PACKAGES_DIR)" >> $(TMP_REPOS_FILE)
+	echo "$(CONTAINER_PACKAGES_OUT_DIR)" >> $(TMP_REPOS_FILE)
 ifneq ($(LOCAL_WOLFI_EXTRA_REPO),)
 	echo "$(LOCAL_WOLFI_EXTRA_REPO)" >> $(TMP_REPOS_FILE)
 endif
 	docker run $(DOCKER_PLATFORM_ARG) --pull=always --rm -it \
 		--entrypoint="/bin/sh" \
-		--mount type=bind,source="${HOST_PACKAGES_OUT_DIR}",destination="$(CONTAINER_PACKAGES_DIR)",readonly \
+		--mount type=bind,source="${HOST_PACKAGES_OUT_DIR}",destination="$(CONTAINER_PACKAGES_OUT_DIR)",readonly \
 		--mount type=bind,source="${HOST_OS_DIR}/$(KEY).pub",destination="/etc/apk/keys/$(KEY).pub",readonly \
 		--mount type=bind,source="$(TMP_REPOS_FILE)",destination="/etc/apk/repositories",readonly \
-		-w "$(CONTAINER_PACKAGES_DIR)" \
+		-w "$(CONTAINER_PACKAGES_OUT_DIR)" \
 		cgr.dev/chainguard/wolfi-base:latest -il
 	rm "$(TMP_REPOS_FILE)"
 	rmdir "$(TMP_REPOS_DIR)"
@@ -247,19 +251,19 @@ wolfi-dev: keygen ## Enter Wolfi SDK container for building images (main build e
 	@echo ""
 	echo "https://packages.wolfi.dev/os" > $(TMP_REPOS_FILE)
 	echo "https://packages.cgr.dev/extras" >> $(TMP_REPOS_FILE)
-	echo "$(CONTAINER_PACKAGES_DIR)" >> $(TMP_REPOS_FILE)
+	echo "$(CONTAINER_PACKAGES_OUT_DIR)" >> $(TMP_REPOS_FILE)
 ifneq ($(LOCAL_WOLFI_EXTRA_REPO),)
 	echo "$(LOCAL_WOLFI_EXTRA_REPO)" >> $(TMP_REPOS_FILE)
 endif
 	docker run $(DOCKER_PLATFORM_ARG) --pull=always --rm -it \
 		--entrypoint="/bin/bash" \
-		--mount type=bind,source="${HOST_IMAGES_OUT_DIR}",destination="$(CONTAINER_OUT_DIR)" \
-		--mount type=bind,source="${HOST_IMAGES_DIR}",destination="$(CONTAINER_OS_DIR)",readonly \
-		--mount type=bind,source="${HOST_PACKAGES_OUT_DIR}",destination="$(CONTAINER_PACKAGES_DIR)" \
+		--mount type=bind,source="${HOST_IMAGES_OUT_DIR}",destination="$(CONTAINER_IMAGES_OUT_DIR)" \
+		--mount type=bind,source="${HOST_IMAGES_DIR}",destination="$(CONTAINER_IMAGES_DIR)",readonly \
+		--mount type=bind,source="${HOST_PACKAGES_OUT_DIR}",destination="$(CONTAINER_PACKAGES_OUT_DIR)",readonly \
 		--mount type=bind,source="${HOST_OS_DIR}/$(KEY).pub",destination="/etc/apk/keys/$(KEY).pub",readonly \
 		--mount type=bind,source="${HOST_OS_DIR}/$(KEY)",destination="/etc/apk/keys/$(KEY)",readonly \
 		--mount type=bind,source="$(TMP_REPOS_FILE)",destination="/etc/apk/repositories",readonly \
-		-w "$(CONTAINER_OS_DIR)" \
+		-w "$(CONTAINER_IMAGES_DIR)" \
 		ghcr.io/wolfi-dev/sdk:latest -il
 	rm "$(TMP_REPOS_FILE)"
 	rmdir "$(TMP_REPOS_DIR)"
