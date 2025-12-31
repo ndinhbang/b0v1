@@ -19,6 +19,7 @@ ifeq (${TMPDIR}, )
 else
     CACHEDIR = ${TMPDIR}/melange-cache
 endif
+PARALLEL_JOBS ?= 4
 # TARGETDIR = packages/${ARCH}
 
 APKO ?= $(shell which apko)
@@ -136,22 +137,58 @@ pkg/download: ## Download packages from apko config file (specify arch=<arch> or
 		echo "Step 1/4: Updating remote index..."; \
 		apk update; \
 		\
-		echo "Step 2/4: Fetching packages..."; \
-		mkdir -p $(REPO)/$$arch; \
-		$(APKO) show-packages $(apko-path) --arch $$arch --format "packagelock-source" | \
-			sed 's/^- \([^=]*\)=.*/\1/' | \
-			xargs apk fetch --repositories-file /etc/apk/repositories --output $(REPO)/$$arch --recursive; \
+		echo "Step 2/4: Installing GNU parallel if needed..."; \
+		command -v parallel >/dev/null 2>&1 || apk add parallel; \
 		\
-		echo "Step 3/4: Generating checksum file..."; \
+		echo "Step 3/4: Fetching packages..."; \
+		mkdir -p $(REPO)/$$arch; \
+		( tmpf=$$(mktemp); \
+		  tmpf_urls=$$(mktemp); \
+		  $(APKO) show-packages $(apko-path) --arch $$arch --format "packagelock-source" > $$tmpf_urls; \
+		  sed 's/^- \([^=]*\)=.*/\1/' $$tmpf_urls > $$tmpf; \
+		  cat $$tmpf | parallel --will-cite --no-notice -j${PARALLEL_JOBS} --halt never --bar \
+		    "apk fetch --repositories-file /etc/apk/repositories --output $(REPO)/$$arch {} >/dev/null 2>&1"; \
+		  rm -f $$tmpf $$tmpf_urls; \
+		); \
+		echo "✓ Download complete"; \
+		\
+		echo "Step 4/4: Generating checksum file..."; \
 		(cd $(REPO)/$$arch && \
-			find . -maxdepth 1 -name "*.apk" -type f -exec sha256sum {} \; | sort -k2 > checksum.txt); \
+		  sha256sum *.apk 2>/dev/null | sort -k2 > checksum.txt); \
+		); \
 		echo "✓ Download complete. Checksum file created at $(REPO)/$$arch/checksum.txt"; \
 		\
-		echo "Step 4/4: Generating APKINDEX..."; \
-		$(MAKE) pkg/index arch=$$arch || exit 1; \
+		echo "Step 5/4: Generating APKINDEX..."; \
+		$(MAKE) --no-print-directory pkg/index arch=$$arch || exit 1; \
 	done
 	@echo ""
 	@echo "=== Download completed for: $(archs) ==="
+
+.PHONY: pkg/collect
+pkg/collect: ## Collect and deduplicate packages from all apko configs (specify arch=<arch> or collect both)
+	$(eval arch_normalized := $(if $(arch),$(shell echo $(arch) | sed 's/amd64/x86_64/;s/arm64/aarch64/'),))
+	$(eval archs := $(if $(arch_normalized),$(arch_normalized),x86_64 aarch64))
+	@if [ ! -d "$(IMAGES_DIR)" ]; then \
+		echo "Error: Images directory not found: $(IMAGES_DIR)"; \
+		exit 1; \
+	fi
+	@echo "Installing GNU parallel if needed..."; \
+	command -v parallel >/dev/null 2>&1 || apk add parallel
+	@for arch in $(archs); do \
+		echo ""; \
+		echo "=== Collecting packages for $$arch ==="; \
+		mkdir -p $(REPO)/$$arch; \
+		rm -f $(REPO)/$$arch/packages.lock; \
+		tmpdir=$$(mktemp -d); \
+		find $(IMAGES_DIR) -type f -name "*.apko.yaml" | \
+			parallel --will-cite --no-notice -j${PARALLEL_JOBS} --halt never --bar \
+				"$(APKO) show-packages {} --arch $$arch --format packagelock-source > $$tmpdir/{#}.lock 2>/dev/null || true"; \
+		cat $$tmpdir/*.lock 2>/dev/null | sort -u > $(REPO)/$$arch/packages.lock; \
+		rm -rf $$tmpdir; \
+		pkg_count=$$(wc -l < $(REPO)/$$arch/packages.lock); \
+		echo "✓ Collection complete: $$pkg_count unique packages for $$arch"; \
+		echo "Lock file: $(REPO)/$$arch/packages.lock"; \
+	done
 
 .PHONY: pkg/download-all
 pkg/download-all: ## Download packages from all apko config files (specify arch=<arch> or download both)
@@ -163,18 +200,40 @@ pkg/download-all: ## Download packages from all apko config files (specify arch=
 		echo "Error: Images directory not found: $(IMAGES_DIR)"; \
 		exit 1; \
 	fi
-	@find $(IMAGES_DIR) -type f -name "*.apko.yaml" | while read -r config_file; do \
-		rel_path=$${config_file#$(IMAGES_DIR)/}; \
-		name=$$(echo $$rel_path | cut -d'/' -f1); \
-		tag=$$(basename $$rel_path .apko.yaml); \
-		for arch in $(archs); do \
-			echo ""; \
-			echo ">>> Processing: $$name/$$tag [$$arch]"; \
-			$(MAKE) pkg/download name=$$name tag=$$tag arch=$$arch || { \
-				echo "✗ Failed to download packages for $$name:$$tag [$$arch]"; \
-				exit 1; \
-			}; \
-		done; \
+	@echo "Installing GNU parallel if needed..."; \
+	command -v parallel >/dev/null 2>&1 || apk add parallel
+	@echo ""
+	@echo "=== Phase 1: Collecting packages ==="
+	@for arch in $(archs); do \
+		$(MAKE) --no-print-directory pkg/collect arch=$$arch; \
+	done
+	@echo ""
+	@echo "=== Phase 2: Downloading and indexing ==="
+	@for arch in $(archs); do \
+		echo ""; \
+		echo ">>> Architecture: $$arch"; \
+		echo "Target: $(REPO)/$$arch"; \
+		\
+		echo "Step 1/4: Updating remote index..."; \
+		apk update; \
+		\
+		echo "Step 2/4: Fetching packages from $(REPO)/$$arch/packages.lock..."; \
+		mkdir -p $(REPO)/$$arch; \
+		( tmpf=$$(mktemp); \
+		  sed 's/^- \([^=]*\)=.*/\1/' $(REPO)/$$arch/packages.lock > $$tmpf; \
+		  cat $$tmpf | parallel --will-cite --no-notice -j${PARALLEL_JOBS} --halt never --bar \
+		    "apk fetch --repositories-file /etc/apk/repositories --output $(REPO)/$$arch {} >/dev/null 2>&1"; \
+		  rm -f $$tmpf; \
+		); \
+		echo "✓ Download complete"; \
+		\
+		echo "Step 3/4: Generating checksum file..."; \
+		(cd $(REPO)/$$arch && \
+		  sha256sum *.apk 2>/dev/null | sort -k2 > checksum.txt); \
+		echo "✓ Checksum file created at $(REPO)/$$arch/checksum.txt"; \
+		\
+		echo "Step 4/4: Generating APKINDEX..."; \
+		$(MAKE) --no-print-directory pkg/index arch=$$arch || exit 1; \
 	done
 	@echo ""
 	@echo "=== All packages downloaded successfully ==="
@@ -189,12 +248,14 @@ pkg/verify: ## Verify integrity of downloaded packages using checksum.txt
 		exit 1; \
 	fi
 	@cd $(REPO)/$(arch) && \
-		sha256sum -c checksum.txt 2>&1 | \
+		sed 's/ #.*//' checksum.txt > checksum.tmp && \
+		sha256sum -c checksum.tmp 2>&1 | \
 		awk '/OK$$/ {ok++} /FAILED$$/ {fail++; printf "  ✗ FAILED: %s\n", $$1} END { \
 			if(ok>0) print "✓ Verified: " ok " packages"; \
 			if(fail>0) { print "✗ Failed: " fail " packages"; exit 1 } \
 			else if(ok==0) { print "⚠ No files to verify"; } \
-		}'
+		}'; \
+		rm -f checksum.tmp
 
 # 3. Generate APKINDEX
 .PHONY: pkg/index
