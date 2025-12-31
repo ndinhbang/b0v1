@@ -180,14 +180,31 @@ pkg/collect: ## Collect and deduplicate packages from all apko configs (specify 
 		mkdir -p $(REPO)/$$arch; \
 		rm -f $(REPO)/$$arch/packages.lock; \
 		tmpdir=$$(mktemp -d); \
-		find $(IMAGES_DIR) -type f -name "*.apko.yaml" | \
+		success_dir=$$(mktemp -d); \
+		find $(IMAGES_DIR) -type f -name "*.apko.yaml" > $$tmpdir/all_configs.txt; \
+		cat $$tmpdir/all_configs.txt | \
 			parallel --will-cite --no-notice -j${PARALLEL_JOBS} --halt never --bar \
-				"$(APKO) show-packages {} --arch $$arch --format packagelock-source > $$tmpdir/{#}.lock 2>/dev/null || true"; \
+				"if $(APKO) show-packages {} --arch $$arch --format packagelock-source > $$tmpdir/{#}.lock 2>/dev/null; then touch $$success_dir/{#}.ok; fi"; \
 		cat $$tmpdir/*.lock 2>/dev/null | sort -u > $(REPO)/$$arch/packages.lock; \
-		rm -rf $$tmpdir; \
 		pkg_count=$$(wc -l < $(REPO)/$$arch/packages.lock); \
 		echo "✓ Collection complete: $$pkg_count unique packages for $$arch"; \
 		echo "Lock file: $(REPO)/$$arch/packages.lock"; \
+		total_configs=$$(wc -l < $$tmpdir/all_configs.txt); \
+		success_count=$$(ls -1 $$success_dir/*.ok 2>/dev/null | wc -l); \
+		failed_count=$$((total_configs - success_count)); \
+		if [ $$failed_count -gt 0 ]; then \
+			echo ""; \
+			echo "⚠ Warning: $$failed_count config(s) failed:"; \
+			config_num=0; \
+			while IFS= read -r config_file; do \
+				config_num=$$((config_num + 1)); \
+				if [ ! -f "$$success_dir/$$config_num.ok" ]; then \
+					rel_path=$${config_file#$(IMAGES_DIR)/}; \
+					echo "  - $$rel_path"; \
+				fi; \
+			done < $$tmpdir/all_configs.txt; \
+		fi; \
+		rm -rf $$tmpdir $$success_dir; \
 	done
 
 .PHONY: pkg/download-all
