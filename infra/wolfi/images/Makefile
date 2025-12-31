@@ -4,7 +4,7 @@
 # This Makefile provides targets for building OCI container images using apko.
 #
 # Common usage:
-#   make image/image name=laravel tag=latest-dev   # Build image
+#   make image name=laravel tag=latest-dev   # Build image
 #   make image/download-packages name=laravel         # Download packages for offline build
 #   make image/gen-apkindex                        # Generate APKINDEX from downloaded packages
 #
@@ -100,8 +100,8 @@ image/rootfs: image/validate-params ## Build minimal root filesystem (requires n
 
 # Build a container image using apko
 # This is the main target for building complete OCI images
-.PHONY: image/image
-image/image: image/validate-params ## Build container image (requires name= tag=)
+.PHONY: image
+image: image/validate-params ## Build container image (requires name= tag=)
 	$(eval offline := 0)
 	$(eval cache := 0)
 	@echo "Building image $(registry)/$(name):$(tag)..."
@@ -134,7 +134,7 @@ image/show-packages: image/validate-params ## Show packages in apko config (requ
 
 # Perform the full build process: lock, image, and download packages
 .PHONY: image/build
-image/build: image/lock image/image image/download-packages## Generate lock file and build image
+image/build: image/lock image ## Generate lock file and build image
 
 # Tag and push the image to the Docker registry
 .PHONY: image/publish

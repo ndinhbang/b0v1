@@ -1,0 +1,71 @@
+# https://github.com/wolfi-dev/os/blob/main/mysql-9.5.yaml
+# https://github.com/docker-library/mysql/blob/master/innovation/Dockerfile.oracle
+# https://github.com/docker-library/mysql/blob/master/innovation/docker-entrypoint.sh
+# https://github.com/docker-library/mysql/blob/master/8.4/Dockerfile.oracle
+# https://github.com/docker-library/mysql/blob/master/8.4/docker-entrypoint.sh
+# https://images.chainguard.dev/directory/image/mysql/specifications
+# https://images.chainguard.dev/directory/image/mysql/sbom
+contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+    - "@local /work/out/packages"
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+    - /etc/apk/keys/local-melange.rsa.pub
+  packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
+    - tzdata
+    - mysql-8.4@local
+    - mysql-8.4-oci-entrypoint@local
+    - mysql-8.4-oci-entrypoint-compat@local
+    # dev
+    # - mysql-8.4-dev@local
+    - apk-tools
+    - busybox
+    - bash
+    - git
+    - wget
+
+accounts:
+  groups:
+    - groupname: mysql
+      gid: 65532
+  users:
+    - username: mysql
+      uid: 65532
+  run-as: 65532
+
+entrypoint:
+  command: /usr/bin/docker-entrypoint.sh mysqld
+
+environment:
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+
+paths:
+  - path: /var/lib/mysql
+    type: directory
+    permissions: 511 # 0777
+    uid: 65532
+    gid: 65532
+  - path: /var/tmp
+    type: directory
+    permissions: 511 # 0777
+    uid: 65532
+    gid: 65532
+  - path: /run/mysqld
+    type: directory
+    permissions: 511 # 0777
+    uid: 65532
+    gid: 65532
+  - path: /docker-entrypoint-initdb.d
+    type: directory
+    permissions: 511 # 0777
+    uid: 65532
+    gid: 65532
+
+archs:
+  - x86_64
+  # - aarch64
