@@ -12,8 +12,8 @@ contents:
     - wolfi-baselayout
     - glibc-locale-posix
     - tzdata
-    - percona-server
-    - percona-server-oci-entrypoint
+    - percona-server-9.1
+    - percona-server-9.1-oci-entrypoint
     # dev
     - apk-tools
     - busybox
