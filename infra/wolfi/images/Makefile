@@ -151,6 +151,7 @@ image/publish: image/lock image/validate-params ## Publish image to registry (re
 		--workdir $(IMAGES_OUT_DIR)/$(name) \
 		--log-level $(log_level) \
 		--lockfile $(IMAGES_OUT_DIR)/$(name)/$(tag)/apko.lock.json \
+		--sbom-path $(IMAGES_OUT_DIR)/$(name)/$(tag) \
 		--image-refs $(IMAGES_OUT_DIR)/$(name)/$(tag)/.digests \
 		$(if $(filter 1,$(cache)),--cache-dir $(IMAGE_CACHE_DIR),) \
 		$(if $(filter 1,$(offline)),--offline,) \
