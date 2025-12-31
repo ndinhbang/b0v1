@@ -172,11 +172,13 @@ pkg/collect: ## Collect and deduplicate packages from all apko configs (specify 
 		echo "Error: Images directory not found: $(IMAGES_DIR)"; \
 		exit 1; \
 	fi
-	@echo "Installing GNU parallel if needed..."; \
-	command -v parallel >/dev/null 2>&1 || apk add parallel
+	@command -v parallel >/dev/null 2>&1 || { \
+		echo "Installing GNU parallel..."; \
+		apk add parallel; \
+	}
 	@for arch in $(archs); do \
 		echo ""; \
-		echo "=== Collecting packages for $$arch ==="; \
+		echo ">>> Architecture: $$arch"; \
 		mkdir -p $(REPO)/$$arch; \
 		rm -f $(REPO)/$$arch/packages.lock; \
 		tmpdir=$$(mktemp -d); \
@@ -208,17 +210,20 @@ pkg/collect: ## Collect and deduplicate packages from all apko configs (specify 
 	done
 
 .PHONY: pkg/download-all
-pkg/download-all: ## Download packages from all apko config files (specify arch=<arch> or download both)
+pkg/download-all: ## Download packages from all apko config files (specify arch=<arch> or download both, force=1 to re-download existing)
 	$(eval arch_normalized := $(if $(arch),$(shell echo $(arch) | sed 's/amd64/x86_64/;s/arm64/aarch64/'),))
 	$(eval archs := $(if $(arch_normalized),$(arch_normalized),x86_64 aarch64))
-	@echo "=== Downloading packages from all apko config files ==="
+	$(eval force := $(if $(force),$(force),0))
 	@echo "Architectures: $(archs)"
+	@echo "Force mode: $(force) (0=skip existing, 1=re-download all)"
 	@if [ ! -d "$(IMAGES_DIR)" ]; then \
 		echo "Error: Images directory not found: $(IMAGES_DIR)"; \
 		exit 1; \
 	fi
-	@echo "Installing GNU parallel if needed..."; \
-	command -v parallel >/dev/null 2>&1 || apk add parallel
+	@command -v parallel >/dev/null 2>&1 || { \
+		echo "Installing GNU parallel..."; \
+		apk add parallel; \
+	}
 	@echo ""
 	@echo "=== Phase 1: Collecting packages ==="
 	@for arch in $(archs); do \
@@ -236,24 +241,51 @@ pkg/download-all: ## Download packages from all apko config files (specify arch=
 		\
 		echo "Step 2/4: Fetching packages from $(REPO)/$$arch/packages.lock..."; \
 		mkdir -p $(REPO)/$$arch; \
+		downloaded_count=0; \
 		( tmpf=$$(mktemp); \
+		  tmpf_needed=$$(mktemp); \
+		  tmpf_filtered=$$(mktemp); \
+		  tmpf_existing=$$(mktemp); \
+		  sed 's/^- \([^=]*\)=\([^ ]*\).*/\1-\2/' $(REPO)/$$arch/packages.lock > $$tmpf_needed; \
 		  sed 's/^- \([^=]*\)=.*/\1/' $(REPO)/$$arch/packages.lock > $$tmpf; \
-		  cat $$tmpf | parallel --will-cite --no-notice -j${PARALLEL_JOBS} --halt never --bar \
-		    "apk fetch --repositories-file /etc/apk/repositories --output $(REPO)/$$arch {} >/dev/null 2>&1"; \
-		  rm -f $$tmpf; \
+		  if [ "$(force)" = "0" ]; then \
+		    echo "  Filtering already downloaded packages..."; \
+		    ls $(REPO)/$$arch/*.apk 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.apk$$//' | sort -u > $$tmpf_existing; \
+		    comm -23 <(sort $$tmpf_needed) $$tmpf_existing | sed 's/-[^-]*-r[^-]*$$//' > $$tmpf_filtered; \
+		    total=$$(wc -l < $$tmpf); \
+		    to_download=$$(wc -l < $$tmpf_filtered 2>/dev/null || echo 0); \
+		    skipped=$$((total - to_download)); \
+		    echo "  Total: $$total packages, Skipped: $$skipped, To download: $$to_download"; \
+		    if [ $$to_download -gt 0 ]; then \
+		      cat $$tmpf_filtered | parallel --will-cite --no-notice -j${PARALLEL_JOBS} --halt never --bar \
+		        "apk fetch --repositories-file /etc/apk/repositories --output $(REPO)/$$arch {} >/dev/null 2>&1"; \
+		      downloaded_count=$$to_download; \
+		    fi; \
+		  else \
+		    echo "  Downloading all packages (force mode)..."; \
+		    cat $$tmpf | parallel --will-cite --no-notice -j${PARALLEL_JOBS} --halt never --bar \
+		      "apk fetch --repositories-file /etc/apk/repositories --output $(REPO)/$$arch {} >/dev/null 2>&1"; \
+		    downloaded_count=$$(wc -l < $$tmpf); \
+		  fi; \
+		  rm -f $$tmpf $$tmpf_needed $$tmpf_filtered $$tmpf_existing; \
 		); \
 		echo "✓ Download complete"; \
 		\
-		echo "Step 3/4: Generating checksum file..."; \
-		(cd $(REPO)/$$arch && \
-		  sha256sum *.apk 2>/dev/null | sort -k2 > checksum.txt); \
-		echo "✓ Checksum file created at $(REPO)/$$arch/checksum.txt"; \
-		\
-		echo "Step 4/4: Generating APKINDEX..."; \
-		$(MAKE) --no-print-directory pkg/index arch=$$arch || exit 1; \
+		if [ $$downloaded_count -gt 0 ]; then \
+		  echo "Step 3/4: Generating checksum file..."; \
+		  (cd $(REPO)/$$arch && \
+		    sha256sum *.apk 2>/dev/null | sort -k2 > checksum.txt); \
+		  echo "✓ Checksum file created at $(REPO)/$$arch/checksum.txt"; \
+		  \
+		  echo "Step 4/4: Generating APKINDEX..."; \
+		  $(MAKE) --no-print-directory pkg/index arch=$$arch || exit 1; \
+		else \
+		  echo "Step 3/4: Skipping checksum generation (no new packages)"; \
+		  echo "Step 4/4: Skipping APKINDEX generation (no new packages)"; \
+		fi; \
 	done
 	@echo ""
-	@echo "=== All packages downloaded successfully ==="
+	@echo "✓ All packages downloaded successfully"
 
 # 2. Verify Package Integrity
 .PHONY: pkg/verify
