@@ -105,13 +105,22 @@ pkg/clean-cache: ## Clean melange build cache
 
 .PHONY: pkg/fetch-url
 pkg/fetch-url: ## Fetch and download APK from URL to /work/packages/$(ARCH)
-	@if [ -z "$(URL)" ]; then URL=$(filter-out $@, $(MAKECMDGOALS)); fi
-	@if [ -z "$(URL)" ]; then echo "Usage: make pkg/fetch-url <url> or make pkg/fetch-url URL=<url>"; exit 1; fi
-	mkdir -p $(REPO)/$(ARCH)
-	curl -L -o $(REPO)/$(ARCH)/$(shell basename $(URL)) $(URL)
+	@URL=$(filter-out $@, $(MAKECMDGOALS)); \
+	if [ -z "$$URL" ]; then echo "Usage: make pkg/fetch-url <url>"; exit 1; fi; \
+	mkdir -p $(REPO)/$(ARCH); \
+	filename=$$(basename "$$URL"); \
+	curl -L -o $(REPO)/$(ARCH)/$$filename "$$URL";
 
+# The catch-all rule to prevent Make from treating URLs as a target
 %:
 	@:
+
+
+.PHONY: pkg/checksum
+pkg/checksum:  ## Generate checksum.txt for existing APKs in /work/packages/$(ARCH)
+	(cd $(REPO)/$(ARCH) && \
+		sha256sum *.apk 2>/dev/null | sort -k2 > checksum.txt);
+
 
 # =============================================================================
 # Offline Build Support
@@ -290,7 +299,7 @@ pkg/download-all: ## Download packages from all apko config files (specify arch=
 # 2. Verify Package Integrity
 .PHONY: pkg/verify
 pkg/verify: ## Verify integrity of downloaded packages using checksum.txt
-	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
+	$(eval arch ?= $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
 	@if [ ! -f "$(REPO)/$(arch)/checksum.txt" ]; then \
 		echo "✗ Error: checksum.txt not found. Run 'make pkg/download' first."; \
 		exit 1; \
@@ -306,7 +315,7 @@ pkg/verify: ## Verify integrity of downloaded packages using checksum.txt
 # 3. Generate APKINDEX
 .PHONY: pkg/index
 pkg/index: pkg/verify ## Verify packages then generate APKINDEX
-	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
+	$(eval arch ?= $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
 	@echo "=== Generating APKINDEX ==="
 	$(MELANGE) index --output $(REPO)/$(arch)/APKINDEX.tar.gz $(REPO)/$(arch)/*.apk
 	$(MELANGE) sign-index --signing-key /etc/apk/keys/local-melange.rsa $(REPO)/$(arch)/APKINDEX.tar.gz
