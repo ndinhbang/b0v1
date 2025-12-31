@@ -53,6 +53,9 @@ log_level ?= debug
 arch ?= $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 # Docker registry configuration
+# Login to github container registry from host machine before publishing:
+#   export CR_PAT=YOUR_TOKEN
+#   echo $CR_PAT | docker login ghcr.io -u USERNAME --password-stdin
 registry ?= ghcr.io/ndinhbang
 registry_backup ?= docker.io/ndinhbang
 
@@ -150,7 +153,7 @@ image/publish: image/lock image/validate-params ## Publish image to registry (re
 		--image-refs $(IMAGES_OUT_DIR)/$(name)/$(tag)/.digests \
 		$(if $(filter 1,$(cache)),--cache-dir $(IMAGE_CACHE_DIR),) \
 		$(if $(filter 1,$(offline)),--offline,) \
-		$(if $(filter 1,$(local)),--local,) ; \
+		$(if $(filter 1,$(local)),--local,)
 	@echo "✓ Image published to:"
 	@echo "  - $(registry)/$(name):$(tag)"
 	@echo "  - $(registry_backup)/$(name):$(tag)"

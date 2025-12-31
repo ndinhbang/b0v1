@@ -263,6 +263,8 @@ endif
 		--mount type=bind,source="${HOST_OS_DIR}/$(KEY).pub",destination="/etc/apk/keys/$(KEY).pub",readonly \
 		--mount type=bind,source="${HOST_OS_DIR}/$(KEY)",destination="/etc/apk/keys/$(KEY)",readonly \
 		--mount type=bind,source="$(TMP_REPOS_FILE)",destination="/etc/apk/repositories",readonly \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		-v ~/.docker/config.json:/root/.docker/config.json:ro \
 		-w "$(CONTAINER_IMAGES_DIR)" \
 		ghcr.io/wolfi-dev/sdk:latest -il
 	rm "$(TMP_REPOS_FILE)"
