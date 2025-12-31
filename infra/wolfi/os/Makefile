@@ -291,20 +291,17 @@ pkg/download-all: ## Download packages from all apko config files (specify arch=
 .PHONY: pkg/verify
 pkg/verify: ## Verify integrity of downloaded packages using checksum.txt
 	$(eval arch := $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
-	@echo "=== Verifying Package Integrity ==="
 	@if [ ! -f "$(REPO)/$(arch)/checksum.txt" ]; then \
 		echo "✗ Error: checksum.txt not found. Run 'make pkg/download' first."; \
 		exit 1; \
 	fi
 	@cd $(REPO)/$(arch) && \
-		sed 's/ #.*//' checksum.txt > checksum.tmp && \
-		sha256sum -c checksum.tmp 2>&1 | \
+		sha256sum -c checksum.txt 2>&1 | \
 		awk '/OK$$/ {ok++} /FAILED$$/ {fail++; printf "  ✗ FAILED: %s\n", $$1} END { \
 			if(ok>0) print "✓ Verified: " ok " packages"; \
 			if(fail>0) { print "✗ Failed: " fail " packages"; exit 1 } \
 			else if(ok==0) { print "⚠ No files to verify"; } \
-		}'; \
-		rm -f checksum.tmp
+		}';
 
 # 3. Generate APKINDEX
 .PHONY: pkg/index
