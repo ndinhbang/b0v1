@@ -54,6 +54,7 @@ arch ?= $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 # Docker registry configuration
 # Login to github container registry from host machine before publishing:
+# https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-with-a-personal-access-token-classic
 #   export CR_PAT=YOUR_TOKEN
 #   echo $CR_PAT | docker login ghcr.io -u USERNAME --password-stdin
 registry ?= ghcr.io/ndinhbang
