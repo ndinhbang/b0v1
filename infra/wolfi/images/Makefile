@@ -86,6 +86,8 @@ image/lock: image/validate-params ## Generate lock file for reproducible builds 
 	$(APKO) lock $(IMAGES_DIR)/$(name)/$(tag).apko.yaml \
 		--log-level $(log_level) \
 		--workdir $(IMAGES_OUT_DIR)/$(name) \
+		--keyring-append /etc/apk/keys/local-melange.rsa.pub \
+		--build-repository-append /work/out/packages \
 		--output $(IMAGES_OUT_DIR)/$(name)/$(tag)/apko.lock.json \
 		$(if $(filter 1,$(cache)),--cache-dir $(IMAGE_CACHE_DIR),)
 	@echo "✓ Lock file generated at $(IMAGES_OUT_DIR)/$(name)/$(tag)/apko.lock.json"
@@ -99,6 +101,8 @@ image/rootfs: image/validate-params ## Build minimal root filesystem (requires n
 	$(APKO) build-minirootfs $(IMAGES_DIR)/$(name)/$(tag).apko.yaml $(IMAGES_OUT_DIR)/$(name)/$(tag)/minirootfs.tar.gz \
 		--build-arch $(arch) \
 		--workdir $(IMAGES_OUT_DIR)/$(name) \
+		--keyring-append /etc/apk/keys/local-melange.rsa.pub \
+		--build-repository-append /work/out/packages \
 		--log-level $(log_level)
 	@echo "✓ Minimal rootfs generated at $(IMAGES_OUT_DIR)/$(name)/$(tag)/minirootfs.tar.gz"
 
@@ -114,6 +118,8 @@ image: image/validate-params ## Build container image (requires name= tag=)
 		--log-level $(log_level) \
 		--workdir $(IMAGES_OUT_DIR)/$(name) \
 		--sbom-path $(IMAGES_OUT_DIR)/$(name)/$(tag) \
+		--keyring-append /etc/apk/keys/local-melange.rsa.pub \
+		--build-repository-append /work/out/packages \
 		--lockfile $(IMAGES_OUT_DIR)/$(name)/$(tag)/apko.lock.json \
 		$(if $(filter 1,$(cache)),--cache-dir $(IMAGE_CACHE_DIR),) \
 		$(if $(filter 1,$(offline)),--offline,)
@@ -132,6 +138,8 @@ image/show-packages: image/validate-params ## Show packages in apko config (requ
 		--arch $(arch) \
 		--workdir $(IMAGES_OUT_DIR)/$(name) \
 		--log-level $(log_level) \
+		--keyring-append /etc/apk/keys/local-melange.rsa.pub \
+		--build-repository-append /work/out/packages \
 		--format "packagelock-source" \
 		$(if $(filter 1,$(cache)),--cache-dir $(IMAGE_CACHE_DIR),) \
 		$(if $(filter 1,$(offline)),--offline,)
@@ -152,6 +160,8 @@ image/publish: image/lock image/validate-params ## Publish image to registry (re
 		--log-level $(log_level) \
 		--lockfile $(IMAGES_OUT_DIR)/$(name)/$(tag)/apko.lock.json \
 		--sbom-path $(IMAGES_OUT_DIR)/$(name)/$(tag) \
+		--keyring-append /etc/apk/keys/local-melange.rsa.pub \
+		--build-repository-append /work/out/packages \
 		--image-refs $(IMAGES_OUT_DIR)/$(name)/$(tag)/.digests \
 		$(if $(filter 1,$(cache)),--cache-dir $(IMAGE_CACHE_DIR),) \
 		$(if $(filter 1,$(offline)),--offline,) \

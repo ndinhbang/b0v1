@@ -50,13 +50,6 @@ digests: ## List all Docker images with digests
 
 ##@ Image Testing & Analysis
 
-# Load the built image tarball into Docker
-.PHONY: load
-load: ## Load built image tarball into Docker (requires name= and tag=)
-	@test -n "$(name)" || (echo "Error: name= is required"; exit 1)
-	@test -n "$(tag)" || (echo "Error: tag= is required"; exit 1)
-	docker load -i $(IMAGES_DIR)/$(name)/$(tag)/image.tar
-
 # Analyze the built image using dive
 .PHONY: dive
 dive: ## Analyze image with dive tool (requires name= and tag=)
@@ -170,6 +163,14 @@ USE_CACHE ?= no
 # =============================================================================
 
 ##@ Wolfi Development Containers
+
+# Load the built image tarball into Docker
+.PHONY: image/load
+image/load: ## Load built image tarball into Docker (requires name= and tag=)
+	@test -n "$(name)" || (echo "Error: name= is required"; exit 1)
+	@test -n "$(tag)" || (echo "Error: tag= is required"; exit 1)
+	docker load -i $(HOST_IMAGES_OUT_DIR)/$(name)/$(tag)/image.tar
+
 
 # Generate melange signing key if it doesn't exist
 .PHONY: keygen

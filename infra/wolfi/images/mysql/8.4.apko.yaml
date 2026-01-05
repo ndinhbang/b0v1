@@ -8,18 +8,16 @@
 contents:
   repositories:
     - https://packages.wolfi.dev/os
-    - "@local /work/out/packages"
   keyring:
     - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
-    - /etc/apk/keys/local-melange.rsa.pub
   packages:
     - ca-certificates-bundle
     - wolfi-baselayout
     - glibc-locale-posix
     - tzdata
-    - mysql-8.4@local
-    - mysql-8.4-oci-entrypoint@local
-    - mysql-8.4-oci-entrypoint-compat@local
+    - mysql-8.4
+    - mysql-8.4-oci-entrypoint
+    - mysql-8.4-oci-entrypoint-compat
 
 accounts:
   groups:

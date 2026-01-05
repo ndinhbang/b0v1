@@ -5,17 +5,15 @@
 contents:
   repositories:
     - https://packages.wolfi.dev/os
-    - "@local /work/out/packages"
   keyring:
     - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
-    - /etc/apk/keys/local-melange.rsa.pub
   packages:
     - ca-certificates-bundle
     - wolfi-baselayout
     - glibc-locale-posix
     - tzdata
-    - percona-server-8.4@local
-    - percona-server-8.4-oci-entrypoint@local
+    - percona-server-8.4
+    - percona-server-8.4-oci-entrypoint
     # dev
     - apk-tools
     - busybox
