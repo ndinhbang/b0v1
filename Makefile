@@ -53,8 +53,7 @@ digests: ## List all Docker images with digests
 # Analyze the built image using dive
 .PHONY: dive
 dive: ## Analyze image with dive tool (requires name= and tag=)
-	@test -n "$(name)" || (echo "Error: name= is required"; exit 1)
-	@test -n "$(tag)" || (echo "Error: tag= is required"; exit 1)
+	@test -n "$(image)" || (echo "Error: image= is required"; exit 1)
 	$(eval image := $(registry)/$(name):$(tag))
 	docker run --rm -it --pull=always \
   		-v /var/run/docker.sock:/var/run/docker.sock \
