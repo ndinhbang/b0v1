@@ -1,4 +1,6 @@
 # https://github.com/wolfi-dev/os/blob/efdcceb832ece89b3ab84e9b2ee089fd9d758715/mysql-9.5.yaml
+# https://github.com/docker-hardened-images/catalog/blob/main/image/mysql/debian/8.4.yaml
+# https://dev.mysql.com/doc/refman/8.4/en/source-configuration-options.html
 package:
   name: mysql-8.4
   version: "8.4.7"
@@ -84,14 +86,24 @@ pipeline:
             -DWITH_ASAN=OFF \
             -DWITH_JEMALLOC=OFF \
             -DWITH_LIBWRAP=OFF \
-            -DWITH_SYSTEMD=ON \
+            -DWITH_SYSTEMD=OFF \
             -DWITH_SSL=system \
             -DWITH_VALGRIND=OFF \
-            -DWITH_ZLIB=system
+            -DWITH_ZLIB=system \
+            -DWITH_DEBUG=OFF \
+            -DWITH_UNIT_TESTS=OFF \
+            -DWITH_ARCHIVE_STORAGE_ENGINE=OFF \
+            -DWITH_BLACKHOLE_STORAGE_ENGINE=OFF \
+            -DWITH_FEDERATED_STORAGE_ENGINE=OFF \
+            -DWITH_EXAMPLE_STORAGE_ENGINE=OFF \
+            -DWITH_NDBCLUSTER_STORAGE_ENGINE=OFF \
+            -DWITH_ROUTER=OFF \
+            -DINSTALL_MYSQLTESTDIR= \
+            -DWITH_NDB=OFF
       - uses: cmake/build
         with:
           opts: |
-            -- -j2
+            -- -j4
       - uses: cmake/install
       # CMAKE_INSTALL_PREFIX=/usr confuses this.
       - name: "Fix installation path of systemd components"
