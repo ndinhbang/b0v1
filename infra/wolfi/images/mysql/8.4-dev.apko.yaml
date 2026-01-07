@@ -67,3 +67,7 @@ paths:
 archs:
   - x86_64
   # - aarch64
+
+layering:
+  strategy: origin
+  budget: 10
