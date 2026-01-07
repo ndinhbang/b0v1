@@ -12,12 +12,6 @@ contents:
     - wolfi-baselayout
     - glibc-locale-posix
     - meilisearch
-    # dev
-    - apk-tools
-    - busybox
-    - bash
-    - git
-    - wget
 
 accounts:
   groups:
