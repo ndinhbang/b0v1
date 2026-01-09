@@ -95,9 +95,19 @@ pkg/cache: ## Create melange cache directory
 	mkdir -p ${CACHEDIR}
 
 .PHONY: pkg/clean
-pkg/clean: ## Clean built packages and kernel artifacts
-	rm -rf packages/${ARCH}
-	rm -rf kernel/
+pkg/clean: ## Clean APK files and APKINDEX (arch=x86_64 or clean both if not specified)
+	$(eval arch_normalized := $(if $(arch),$(shell echo $(arch) | sed 's/amd64/x86_64/;s/arm64/aarch64/'),))
+	$(eval archs := $(if $(arch_normalized),$(arch_normalized),x86_64 aarch64))
+	@for arch in $(archs); do \
+		if [ -d "$(REPO)/$$arch" ]; then \
+			echo "Cleaning $(REPO)/$$arch..."; \
+			rm -f $(REPO)/$$arch/*.apk; \
+			rm -f $(REPO)/$$arch/APKINDEX.tar.gz; \
+			echo "✓ Cleaned $$arch"; \
+		else \
+			echo "⚠ Directory not found: $(REPO)/$$arch"; \
+		fi; \
+	done
 
 .PHONY: pkg/clean-cache
 pkg/clean-cache: ## Clean melange build cache
@@ -118,13 +128,139 @@ pkg/fetch-url: ## Fetch and download APK from URL to /work/packages/$(ARCH)
 
 .PHONY: pkg/checksum
 pkg/checksum:  ## Generate checksum.txt for existing APKs in /work/packages/$(ARCH)
-	(cd $(REPO)/$(ARCH) && \
-		sha256sum *.apk 2>/dev/null | sort -k2 > checksum.txt);
+	$(eval arch ?= $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
+	@(cd $(REPO)/$(arch) && \
+		sha256sum *.apk 2>/dev/null | sort -k2 > checksum.txt)
+	@echo "✓ Checksum file created at $(REPO)/$(arch)/checksum.txt"
 
 
 # =============================================================================
 # Offline Build Support
 # =============================================================================
+
+.PHONY: pkg/download-list
+pkg/download-list: ## Fetch APKs from packages-*.list files (arch=x86_64, file=custom.list, force=1)
+	$(eval force := $(if $(force),$(force),0))
+	@echo "Force mode: $(force) (0=skip existing, 1=re-download all)"
+	@command -v parallel >/dev/null 2>&1 || { \
+		echo "Installing GNU parallel..."; \
+		apk add parallel; \
+	}
+	@if [ -n "$(file)" ]; then \
+		if [ ! -f "$(file)" ]; then \
+			echo "Error: File not found: $(file)"; \
+			exit 1; \
+		fi; \
+		file_list="$(file)"; \
+	elif [ -n "$(arch)" ]; then \
+		file_list="packages-$(arch).list"; \
+		if [ ! -f "$$file_list" ]; then \
+			echo "Error: File not found: $$file_list"; \
+			exit 1; \
+		fi; \
+	else \
+		file_list=$$(ls packages-*.list 2>/dev/null || true); \
+		if [ -z "$$file_list" ]; then \
+			echo "Error: No packages-*.list files found"; \
+			exit 1; \
+		fi; \
+	fi; \
+	for list_file in $$file_list; do \
+		echo ""; \
+		case $$list_file in \
+			packages-*.list) \
+				detected_arch=$${list_file#packages-}; \
+				detected_arch=$${detected_arch%.list}; \
+				;; \
+			*) \
+				echo "⚠ Warning: Cannot extract arch from filename: $$list_file (expected pattern: packages-{arch}.list)"; \
+				echo "Skipping..."; \
+				continue; \
+				;; \
+		esac; \
+		echo ">>> Processing: $$list_file"; \
+		echo "Architecture: $$detected_arch"; \
+		echo "Target: $(REPO)/$$detected_arch"; \
+		\
+		mkdir -p $(REPO)/$$detected_arch; \
+		total_urls=$$(grep -c '^[^[:space:]]' $$list_file || echo 0); \
+		echo "Total URLs: $$total_urls"; \
+		\
+		if [ "$(force)" = "0" ]; then \
+			echo "Step 1/4: Filtering already downloaded packages..."; \
+			tmpf_urls=$$(mktemp); \
+			tmpf_existing=$$(mktemp); \
+			tmpf_filtered=$$(mktemp); \
+			tmpf_failed=$$(mktemp); \
+			grep -v '^[[:space:]]*$$' $$list_file > $$tmpf_urls; \
+			ls $(REPO)/$$detected_arch/*.apk 2>/dev/null | xargs -n1 basename 2>/dev/null | sort -u > $$tmpf_existing || true; \
+			while IFS= read -r url; do \
+				filename=$$(basename "$$url"); \
+				if ! grep -q "^$$filename$$" $$tmpf_existing; then \
+					echo "$$url" >> $$tmpf_filtered; \
+				fi; \
+			done < $$tmpf_urls; \
+			to_download=$$(wc -l < $$tmpf_filtered 2>/dev/null || echo 0); \
+			skipped=$$((total_urls - to_download)); \
+			echo "  Skipped: $$skipped, To download: $$to_download"; \
+			\
+			if [ $$to_download -gt 0 ]; then \
+				echo "Step 2/4: Downloading packages..."; \
+				cat $$tmpf_filtered | parallel --will-cite --no-notice -j${PARALLEL_JOBS} --halt never --bar \
+					"filename=\$$(basename '{}'); if ! curl -L -f -o $(REPO)/$$detected_arch/\$$filename '{}' 2>/dev/null; then echo '{}' >> $$tmpf_failed; fi"; \
+				downloaded_count=$$to_download; \
+				\
+				failed_count=$$(wc -l < $$tmpf_failed 2>/dev/null || echo 0); \
+				if [ $$failed_count -gt 0 ]; then \
+					echo ""; \
+					echo "⚠ Warning: $$failed_count download(s) failed:"; \
+					while IFS= read -r failed_url; do \
+						echo "  ✗ $$failed_url"; \
+					done < $$tmpf_failed; \
+				fi; \
+			else \
+				echo "✓ All packages already downloaded, skipping..."; \
+				downloaded_count=0; \
+			fi; \
+			rm -f $$tmpf_urls $$tmpf_existing $$tmpf_filtered $$tmpf_failed; \
+		else \
+			echo "Step 1/3: Downloading all packages (force mode)..."; \
+			tmpf_urls=$$(mktemp); \
+			tmpf_failed=$$(mktemp); \
+			grep -v '^[[:space:]]*$$' $$list_file > $$tmpf_urls; \
+			cat $$tmpf_urls | parallel --will-cite --no-notice -j${PARALLEL_JOBS} --halt never --bar \
+				"filename=\$$(basename '{}'); if ! curl -L -f -o $(REPO)/$$detected_arch/\$$filename '{}' 2>/dev/null; then echo '{}' >> $$tmpf_failed; fi"; \
+			downloaded_count=$$total_urls; \
+			\
+			failed_count=$$(wc -l < $$tmpf_failed 2>/dev/null || echo 0); \
+			if [ $$failed_count -gt 0 ]; then \
+				echo ""; \
+				echo "⚠ Warning: $$failed_count download(s) failed:"; \
+				while IFS= read -r failed_url; do \
+					echo "  ✗ $$failed_url"; \
+				done < $$tmpf_failed; \
+			fi; \
+			rm -f $$tmpf_urls $$tmpf_failed; \
+		fi; \
+		\
+		if [ $$downloaded_count -gt 0 ]; then \
+			if [ "$(force)" = "0" ]; then \
+				echo "Step 3/4: Generating checksum..."; \
+			else \
+				echo "Step 2/3: Generating checksum..."; \
+			fi; \
+			$(MAKE) --no-print-directory pkg/checksum arch=$$detected_arch; \
+			if [ "$(force)" = "0" ]; then \
+				echo "Step 4/4: Generating APKINDEX..."; \
+			else \
+				echo "Step 3/3: Generating APKINDEX..."; \
+			fi; \
+			$(MAKE) --no-print-directory pkg/index arch=$$detected_arch || exit 1; \
+		fi; \
+		echo "✓ Completed processing: $$list_file"; \
+	done; \
+	echo ""; \
+	echo "✓ All package lists processed."
 
 # 1. Download Packages
 .PHONY: pkg/download
@@ -296,7 +432,6 @@ pkg/download-all: ## Download packages from all apko config files (specify arch=
 	@echo ""
 	@echo "✓ All packages downloaded successfully"
 
-# 2. Verify Package Integrity
 .PHONY: pkg/verify
 pkg/verify: ## Verify integrity of downloaded packages using checksum.txt
 	$(eval arch ?= $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
@@ -312,13 +447,12 @@ pkg/verify: ## Verify integrity of downloaded packages using checksum.txt
 			else if(ok==0) { print "⚠ No files to verify"; } \
 		}';
 
-# 3. Generate APKINDEX
 .PHONY: pkg/index
 pkg/index: pkg/verify ## Verify packages then generate APKINDEX
 	$(eval arch ?= $(shell uname -m | sed 's/amd64/x86_64/;s/arm64/aarch64/'))
 	@echo "=== Generating APKINDEX ==="
-	$(MELANGE) index --output $(REPO)/$(arch)/APKINDEX.tar.gz $(REPO)/$(arch)/*.apk
-	$(MELANGE) sign-index --signing-key /etc/apk/keys/local-melange.rsa $(REPO)/$(arch)/APKINDEX.tar.gz
+	@$(MELANGE) index --output $(REPO)/$(arch)/APKINDEX.tar.gz $(REPO)/$(arch)/*.apk --log-level=warn
+	@$(MELANGE) sign-index --signing-key /etc/apk/keys/local-melange.rsa $(REPO)/$(arch)/APKINDEX.tar.gz
 	@echo "✓ APKINDEX generated at $(REPO)/$(arch)/APKINDEX.tar.gz"
 
 # =============================================================================
