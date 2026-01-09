@@ -81,6 +81,7 @@ pipeline:
     runs: |
       ./buildconf --force
       EXTENSION_DIR=/usr/lib/php/modules ./configure \
+        --enable-option-checking=fatal \
         --prefix=/usr \
         --libdir=/usr/lib/php \
         --sbindir=/usr/bin \
@@ -139,7 +140,6 @@ pipeline:
         --with-zlib \
         --enable-xml=shared \
         --enable-simplexml=shared \
-        --enable-xml=shared \
         --enable-xmlreader=shared \
         --enable-xmlwriter=shared \
         --enable-posix=shared \
@@ -149,7 +149,8 @@ pipeline:
         --enable-sysvshm=shared \
         --with-apxs2=/usr/bin/apxs \
         --enable-phpdbg=shared \
-        --with-external-pcre
+        --with-external-pcre \
+        --with-pcre-jit
 
   - uses: autoconf/make
 
