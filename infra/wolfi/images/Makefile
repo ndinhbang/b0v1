@@ -76,6 +76,16 @@ image/validate-params:
 # Build Targets
 # =============================================================================
 
+.PHONY: image/clean
+image/clean: ## Clean .tar files from images output directory
+	@echo "Cleaning .tar files in: $(IMAGES_OUT_DIR)"
+	@if [ -d "$(IMAGES_OUT_DIR)" ]; then \
+		find $(IMAGES_OUT_DIR) -type f -name "*.tar" -delete; \
+		echo "✓ Cleaned .tar files"; \
+	else \
+		echo "⚠ Directory not found: $(IMAGES_OUT_DIR)"; \
+	fi
+
 # Generate a lock file for the specified apko YAML configuration
 # Lock files ensure reproducible builds by pinning package versions
 .PHONY: image/lock
