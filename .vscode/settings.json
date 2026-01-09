@@ -70,5 +70,6 @@
   "typescript.tsdk": "./node_modules/typescript/lib",
 
   // "chat.mcp.gallery.enabled": true,
-  "chat.agent.maxRequests": 50
+  "chat.agent.maxRequests": 50,
+  "terminal.integrated.scrollback": 10000
 }
