@@ -1,7 +1,7 @@
 package:
   name: php-8.4
   version: "8.4.16"
-  epoch: 2
+  epoch: 3
   description: "the PHP programming language"
   copyright:
     - license: PHP-3.01
@@ -151,8 +151,7 @@ pipeline:
         --with-apxs2=/usr/bin/apxs \
         --enable-phpdbg=shared \
         --with-external-pcre \
-        --with-pcre-jit \
-        --enable-zts
+        --with-pcre-jit
 
   - uses: autoconf/make
 
@@ -300,6 +299,7 @@ subpackages:
           mv ${{targets.destdir}}/usr/lib ${{targets.subpkgdir}}/usr
     test:
       pipeline:
+        - uses: test/tw/ldd-check
         - uses: test/virtualpackage
           with:
             virtual-pkg-name: php-dev
