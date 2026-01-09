@@ -183,7 +183,7 @@ keygen: ## Generate melange signing key
 
 # Enter Wolfi SDK container for OS package development
 .PHONY: wolfi-dev-os
-wolfi-dev-os: ## Enter Wolfi SDK container for package development
+wolfi-dev-os: keygen ## Enter Wolfi SDK container for package development
 	docker run $(DOCKER_PLATFORM_ARG) --pull=always --privileged --rm -it \
 		--entrypoint="/bin/bash" \
 	    -v "${HOST_OS_DIR}:${HOST_OS_DIR}" \
