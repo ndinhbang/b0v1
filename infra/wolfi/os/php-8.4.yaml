@@ -1,7 +1,7 @@
 package:
   name: php-8.4
   version: "8.4.16"
-  epoch: 0
+  epoch: 2
   description: "the PHP programming language"
   copyright:
     - license: PHP-3.01
@@ -64,6 +64,7 @@ environment:
       - sqlite-dev
       - unixodbc-dev
       - wget
+      - argon2-dev
 
 pipeline:
   - uses: git-checkout
@@ -73,9 +74,9 @@ pipeline:
       expected-commit: 2890cbbc4940f382f2f781d08f12c127b1a06a26
 
   # https://gitlab.alpinelinux.org/alpine/aports/-/blob/master/community/php84/install-pear.patch
-  - uses: patch
-    with:
-      patches: install-pear.patch
+  # - uses: patch
+  #   with:
+  #     patches: install-pear.patch
 
   - name: Configure
     runs: |
@@ -102,9 +103,9 @@ pipeline:
         --with-openssl=shared \
         --with-readline \
         --enable-ftp=shared \
+        --with-password-argon2=shared \
         --with-sodium=shared \
         --enable-fpm \
-        --with-pear \
         --enable-gd=shared \
         --with-avif \
         --with-freetype \
@@ -150,7 +151,8 @@ pipeline:
         --with-apxs2=/usr/bin/apxs \
         --enable-phpdbg=shared \
         --with-external-pcre \
-        --with-pcre-jit
+        --with-pcre-jit \
+        --enable-zts
 
   - uses: autoconf/make
 
@@ -439,44 +441,6 @@ subpackages:
           with:
             virtual-pkg-name: php-fpm-config
             real-pkg-name: ${{subpkg.name}}
-
-  - name: ${{package.name}}-pear
-    description: PHP ${{vars.phpMM}} PEAR package manager
-    dependencies:
-      runtime:
-        - ${{package.name}}
-        - ${{package.name}}-xml
-        - ${{package.name}}-openssl
-    pipeline:
-      - runs: |
-          mkdir -p ${{targets.subpkgdir}}/usr/bin
-          mkdir -p ${{targets.subpkgdir}}/usr/share/php
-
-          # Move PEAR executables
-          mv ${{targets.destdir}}/usr/bin/pear ${{targets.subpkgdir}}/usr/bin/
-          mv ${{targets.destdir}}/usr/bin/peardev ${{targets.subpkgdir}}/usr/bin/
-          mv ${{targets.destdir}}/usr/bin/pecl ${{targets.subpkgdir}}/usr/bin/
-
-          # Move PEAR libraries
-          if [ -d "${{targets.destdir}}/usr/share/php/pear" ]; then
-            mv ${{targets.destdir}}/usr/share/php/pear ${{targets.subpkgdir}}/usr/share/php/
-          fi
-    test:
-      pipeline:
-        - runs: |
-            pear version
-        - runs: |
-            echo "Available channels:"
-            echo "Available channels:"
-            pear list-channels
-            pear install Cache_Lite
-            # Verify PEAR functionality by checking if we have core packages
-            if pear list | grep -q "PEAR"; then
-                echo "PEAR core packages are installed"
-            else
-                echo "No PEAR packages found"
-                exit 1
-            fi
 
 update:
   enabled: true
