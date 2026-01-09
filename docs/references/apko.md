@@ -10,7 +10,7 @@ https://wolfi.pkgs.org/
 https://packages.wolfi.dev
 https://packages.wolfi.dev/os/aarch64/APKINDEX.tar.gz
 https://packages.wolfi.dev/os/x86_64/APKINDEX.tar.gz
-https://github.com/chainguard-dev/melange/tree/main/pkg/build/pipelines
+https://github.com/chainguard-dev/melange/blob/main/pkg/build/pipelines/README.md
 https://github.com/chainguard-dev/melange?tab=readme-ov-file#default-substitutions
 https://github.com/chainguard-dev/melange/blob/main/README.md
 https://github.com/chainguard-dev/melange/blob/main/docs/BUILD-PROCESS.md

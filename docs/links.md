@@ -1,0 +1,4 @@
+- [Image Builder - Building operating system artifacts](https://osbuild.org/)
+- [Bootc - Transactional, in-place operating system updates using OCI/Docker container images](https://github.com/bootc-dev/bootc)
+- [youki - A container runtime written in Rust](https://github.com/youki-dev/youki)
+- [crun - A fast and lightweight fully featured OCI runtime and C library for running containers](https://github.com/containers/crun)
