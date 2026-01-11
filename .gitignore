@@ -45,11 +45,8 @@ test-results
 .cache
 mise.local.toml
 
-sbom*
 *.apk
 *.tar
 *.tar.gz
-*.lock.json
-.digests
 *.rsa
 *.rsa.pub
