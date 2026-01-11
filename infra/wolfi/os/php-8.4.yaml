@@ -64,7 +64,6 @@ environment:
       - sqlite-dev
       - unixodbc-dev
       - wget
-      - argon2-dev
 
 pipeline:
   - uses: git-checkout
@@ -103,7 +102,6 @@ pipeline:
         --with-openssl=shared \
         --with-readline \
         --enable-ftp=shared \
-        --with-password-argon2=shared \
         --with-sodium=shared \
         --enable-fpm \
         --enable-gd=shared \

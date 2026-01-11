@@ -1,0 +1,95 @@
+# https://github.com/chainguard-dev/apko/blob/main/docs/apko_file.md
+# https://github.com/chainguard-images/images/blob/main/BEST_PRACTICES.md
+# https://github.com/wolfi-dev/os/blob/main/php-8.4.yaml
+# https://github.com/chainguard-images/images/blob/main/images/laravel/config/main.tf
+# https://github.com/chainguard-images/images/blob/main/images/laravel/main.tf
+# https://images.chainguard.dev/directory/image/laravel/sbom
+# https://images.chainguard.dev/directory/image/laravel/specifications
+contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+  packages:
+    - ca-certificates-bundle
+    - wolfi-baselayout
+    - glibc-locale-posix
+    - ca-certificates
+    - curl
+    - php-8.4
+    - php-8.4-ctype
+    - php-8.4-curl
+    - php-8.4-dom
+    - php-8.4-fileinfo
+    - php-8.4-fpm
+    - php-8.4-iconv
+    - php-8.4-mbstring
+    - php-8.4-mysqlnd
+    - php-8.4-openssl
+    - php-8.4-pdo
+    - php-8.4-pdo_mysql
+    - php-8.4-pdo_sqlite
+    - php-8.4-phar
+    - php-8.4-simplexml
+    - php-8.4-sodium
+    - php-8.4-xml
+    # Additional extensions
+    # - php-8.4-apache
+    # - php-8.4-apcu
+    # - php-8.4-gd
+    # - php-8.4-grpc
+    # - php-8.4-igbinary
+    # - php-8.4-intl
+    # - php-8.4-opcache
+    # - php-8.4-opentelemetry
+    # - php-8.4-pcntl
+    # - php-8.4-pdo_pgsql
+    # - php-8.4-protobuf
+    # - php-8.4-redis
+    # - php-8.4-swoole
+    # - php-8.4-zip
+    # - php-8.4-zstd
+    # - php-8.4-xdebug
+    #  dev
+    - composer
+    - php-8.4-xmlwriter
+    - apk-tools
+    - busybox
+    - bash
+    - git
+    - wget
+
+entrypoint:
+  type: service-bundle
+  services:
+    php-fpm: /usr/bin/php-fpm
+
+environment:
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+
+paths:
+  - path: /app
+    type: directory
+    permissions: 511 # 0777
+    uid: 65532
+    gid: 65532
+
+work-dir: /app
+
+accounts:
+  groups:
+    - groupname: php
+      gid: 65532
+  users:
+    - username: php
+      uid: 65532
+      gid: 65532
+    - username: laravel
+      uid: 1000
+      gid: 1000
+  run-as: 65532
+
+archs:
+  - x86_64
+  - aarch64

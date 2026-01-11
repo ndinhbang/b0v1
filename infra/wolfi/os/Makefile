@@ -77,6 +77,9 @@ ifeq (${LINT}, yes)
 	MELANGE_OPTS += --fail-on-lint-warning
 endif
 
+MELANGE_OPTS += --apk-cache-dir /work/out/cache/apk
+
+
 WOLFI_REPO ?= https://packages.wolfi.dev/os
 WOLFI_KEY ?= https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
 
@@ -557,3 +560,14 @@ $(compile_targets): compile/%: ## Compile package configuration (e.g., compile/p
 	$(eval yamlfile := $*.yaml)
 	@$(MELANGE) compile $(yamlfile) $(MELANGE_OPTS) --source-dir ./$(*)/
 
+EXCLUDE_PKGS ?= mysql-8.4 percona-server-8.4
+.PHONY: pkg/all
+pkg/all: $(KEY) pkg/cache ## Build all packages found in the current directory
+	$(eval filtered_pkgs := $(filter-out $(EXCLUDE_PKGS),$(pkgs)))
+	@echo "Building all packages: $(filtered_pkgs)"
+	@for pkg in $(filtered_pkgs); do \
+		echo "--------------------------------------------------"; \
+		echo ">>> Building package: $$pkg"; \
+		$(MAKE) package/$$pkg || exit 1; \
+	done
+	@echo "✓ All packages built successfully!"
