@@ -26,47 +26,47 @@ contents:
     - nginx-mainline-package-config
     - ca-certificates
     - curl
-    - php-8.5
-    - php-8.5-ctype
-    - php-8.5-curl
-    - php-8.5-dom
-    - php-8.5-fileinfo
-    - php-8.5-fpm
-    - php-8.5-iconv
-    - php-8.5-mbstring
-    - php-8.5-mysqlnd
-    - php-8.5-openssl
-    - php-8.5-pdo
-    - php-8.5-pdo_mysql
-    - php-8.5-pdo_sqlite
-    - php-8.5-phar
-    - php-8.5-simplexml
-    - php-8.5-sodium
-    - php-8.5-xml
-    - php-8.5-zip
+    - php-8.4
+    - php-8.4-ctype
+    - php-8.4-curl
+    - php-8.4-dom
+    - php-8.4-fileinfo
+    - php-8.4-fpm
+    - php-8.4-iconv
+    - php-8.4-mbstring
+    - php-8.4-mysqlnd
+    - php-8.4-openssl
+    - php-8.4-pdo
+    - php-8.4-pdo_mysql
+    - php-8.4-pdo_sqlite
+    - php-8.4-phar
+    - php-8.4-simplexml
+    - php-8.4-sodium
+    - php-8.4-xml
+    - php-8.4-zip
     # dev
     - composer
-    - php-8.5-xmlwriter
+    - php-8.4-xmlwriter
     - apk-tools
     - busybox
     - bash
     - git
     - wget
     # Additional extensions
-    # - php-8.5-apcu
-    # - php-8.5-gd
-    # - php-8.5-grpc
-    # - php-8.5-igbinary
-    # - php-8.5-intl
-    # - php-8.5-opcache
-    # - php-8.5-opentelemetry
-    # - php-8.5-pcntl
-    # - php-8.5-pdo_pgsql
-    # - php-8.5-protobuf
-    # - php-8.5-redis
-    # - php-8.5-swoole
-    # - php-8.5-zstd
-    # - php-8.5-xdebug
+    # - php-8.4-apcu
+    # - php-8.4-gd
+    # - php-8.4-grpc
+    # - php-8.4-igbinary
+    # - php-8.4-intl
+    # - php-8.4-opcache
+    # - php-8.4-opentelemetry
+    # - php-8.4-pcntl
+    # - php-8.4-pdo_pgsql
+    # - php-8.4-protobuf
+    # - php-8.4-redis
+    # - php-8.4-swoole
+    # - php-8.4-zstd
+    # - php-8.4-xdebug
 
 entrypoint:
   type: service-bundle
