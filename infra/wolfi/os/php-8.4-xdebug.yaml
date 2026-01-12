@@ -1,7 +1,7 @@
 package:
   name: php-8.4-xdebug
   version: "3.5.0"
-  epoch: 1
+  epoch: 2
   description: "Step Debugger for PHP"
   copyright:
     - license: PHP-3.01
@@ -24,6 +24,7 @@ environment:
       - busybox
       - php-${{vars.phpMM}}
       - php-${{vars.phpMM}}-dev
+      - file
 
 pipeline:
   - uses: git-checkout

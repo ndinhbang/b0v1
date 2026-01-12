@@ -1,7 +1,7 @@
 package:
   name: php-8.4-opentelemetry
   version: "1.2.1"
-  epoch: 1
+  epoch: 2
   description: "OpenTelemetry PHP auto-instrumentation extension"
   copyright:
     - license: Apache-2.0
@@ -24,6 +24,7 @@ environment:
       - busybox
       - php-${{vars.phpMM}}
       - php-${{vars.phpMM}}-dev
+      - file
 
 pipeline:
   - uses: git-checkout
