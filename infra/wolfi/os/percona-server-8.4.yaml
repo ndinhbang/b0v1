@@ -14,6 +14,7 @@ package:
     provides:
       - percona-server=${{package.full-version}}
     runtime:
+      - merged-usrsbin
       - bash
       - busybox
       - tzdata
@@ -118,6 +119,7 @@ pipeline:
         -DWITH_FEDERATED_STORAGE_ENGINE=OFF \
         -DWITH_EXAMPLE_STORAGE_ENGINE=OFF \
         -DWITH_NDBCLUSTER_STORAGE_ENGINE=OFF \
+        -DINSTALL_MYSQLTESTDIR= \
         ..
 
   - name: "Install"
@@ -133,15 +135,23 @@ pipeline:
       rm -rf "${{targets.destdir}}"/usr/share/man/
       rm -rf "${{targets.destdir}}"/usr/share/doc/
 
-  - name: "Create required data directories"
-    runs: |
-      mkdir -p "${{targets.destdir}}"/run/mysqld
-      mkdir -p "${{targets.destdir}}"/var/lib/mysql
-      mkdir -p "${{targets.destdir}}"/var/tmp
+  # - name: "Create required data directories"
+  #   runs: |
+  #     mkdir -p "${{targets.destdir}}"/run/mysqld
+  #     mkdir -p "${{targets.destdir}}"/var/lib/mysql
+  #     mkdir -p "${{targets.destdir}}"/var/tmp
+
+  - uses: strip
 
 subpackages:
   - name: "${{package.name}}-dev"
     description: "headers for percona-server"
+    dependencies:
+      provides:
+        - percona-server-dev=${{package.full-version}}
+      runtime:
+        - merged-usrsbin
+        - wolfi-baselayout
     pipeline:
       - uses: split/dev
     test:
@@ -149,15 +159,26 @@ subpackages:
         - uses: test/pkgconf
         - uses: test/tw/ldd-check
           with:
-            packages: percona-server-8.4-dev
+            packages: ${{package.name}}-dev
 
   - name: ${{package.name}}-oci-entrypoint
     description: Entrypoint for using Percona Server in OCI containers
+    dependencies:
+      runtime:
+        - bash
+        - busybox
+        - merged-usrsbin
+        - openssl
+        - wolfi-baselayout
     pipeline:
       - runs: |
           mkdir -p ${{targets.contextdir}}/
           cp docker-entrypoint.sh ${{targets.contextdir}}/docker-entrypoint.sh
           chmod +x ${{targets.contextdir}}/docker-entrypoint.sh
+    test:
+      pipeline:
+        - runs: |
+            test /docker-entrypoint.sh
 
 update:
   enabled: true
@@ -171,7 +192,18 @@ update:
       replace: $1.$2
 
 test:
+  environment:
+    contents:
+      packages:
+        - ${{package.name}}
+        - ${{package.name}}-dev
+        - gcc
+        - make
+        - glibc-dev
   pipeline:
+    - uses: test/tw/ldd-check
+      with:
+        extra-library-paths: "/usr/lib/private"
     - name: Create mysql user and prepare environment
       runs: |
         # Create a non-root user for the MySQL test...
