@@ -77,7 +77,7 @@ ifeq (${LINT}, yes)
 	MELANGE_OPTS += --fail-on-lint-warning
 endif
 
-MELANGE_OPTS += --apk-cache-dir /work/out/cache/apk
+# MELANGE_OPTS += --apk-cache-dir /work/out/cache/apk
 
 
 WOLFI_REPO ?= https://packages.wolfi.dev/os
