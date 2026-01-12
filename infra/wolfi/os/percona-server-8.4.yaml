@@ -2,7 +2,7 @@
 package:
   name: percona-server-8.4
   version: "8.4.7.7"
-  epoch: 0
+  epoch: 2
   description: "Percona Server for MySQL is a free, fully compatible, enhanced, and open source drop-in replacement for any MySQL database. It provides superior performance, scalability, and instrumentation."
   copyright:
     - license: GPL-3.0-or-later
@@ -64,84 +64,81 @@ environment:
       - zstd-dev
 
 pipeline:
-  - uses: git-checkout
-    with:
-      repository: https://github.com/percona/percona-server
-      tag: Percona-Server-${{vars.mangled-package-version}}
-      expected-commit: 9a19f1fd3bfd482ffb0a2434b5b019c66e45d7e6
-      recurse-submodules: true
+  - working-directory: /home/build/percona-server
+    pipeline:
+      - uses: git-checkout
+        with:
+          repository: https://github.com/percona/percona-server
+          tag: Percona-Server-${{vars.mangled-package-version}}
+          expected-commit: 9a19f1fd3bfd482ffb0a2434b5b019c66e45d7e6
+          recurse-submodules: true
 
-  - name: "Remove Coredumper Support"
-    runs: |
-      sed -i 's/INCLUDE(coredumper)//g' CMakeLists.txt
-      sed -i 's/MYSQL_CHECK_COREDUMPER()//g' CMakeLists.txt
-      sed -i 's/OPTION (WITH_COREDUMPER "Enable support for coredumper library" ON)//g' CMakeLists.txt
+      - name: "Remove Coredumper Support"
+        runs: |
+          sed -i 's/INCLUDE(coredumper)//g' CMakeLists.txt
+          sed -i 's/MYSQL_CHECK_COREDUMPER()//g' CMakeLists.txt
+          sed -i 's/OPTION (WITH_COREDUMPER "Enable support for coredumper library" ON)//g' CMakeLists.txt
 
-  - name: "Cmake"
-    runs: |
-      mkdir build && cd build
-      cmake . -G Ninja \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_VERBOSE_MAKEFILE=ON \
-        -DBUILD_CONFIG=mysql_release \
-        -DWITH_EDITLINE=system \
-        -DCMAKE_INSTALL_PREFIX=/usr \
-        -DSYSCONFDIR=/etc \
-        -DMYSQL_DATADIR=/var/lib/mysql \
-        -DMYSQL_UNIX_ADDR=/run/mysqld/mysqld.sock \
-        -DDEFAULT_CHARSET=utf8mb4 \
-        -DDEFAULT_COLLATION=utf8mb4_0900_ai_ci \
-        -DENABLED_LOCAL_INFILE=ON \
-        -DINSTALL_INFODIR=share/info \
-        -DINSTALL_MANDIR=share/man \
-        -DINSTALL_PLUGINDIR=lib/${{package.name}}/plugin \
-        -DINSTALL_INCLUDEDIR=include/mysql \
-        -DINSTALL_DOCREADMEDIR=share/doc/${{package.name}} \
-        -DINSTALL_SUPPORTFILESDIR=share/${{package.name}} \
-        -DINSTALL_MYSQLSHAREDIR=share/${{package.name}} \
-        -DINSTALL_DOCDIR=share/doc/${{package.name}} \
-        -DWITH_ROCKSDB=OFF \
-        -DWITH_ASAN=OFF \
-        -DWITH_SYSTEMD=OFF \
-        -DWITH_SSL=system \
-        -DWITH_LZ4=system \
-        -DWITH_ICU=system \
-        -DWITH_FIDO=system \
-        -DWITH_VALGRIND=OFF \
-        -DWITH_ZLIB=system \
-        -DWITH_ZSTD=system \
-        -DWITH_UNIT_TESTS=OFF \
-        -DWITH_DEBUG=OFF \
-        -DWITH_ROUTER=OFF \
-        -DWITH_NDB=OFF \
-        -DWITH_ARCHIVE_STORAGE_ENGINE=OFF \
-        -DWITH_BLACKHOLE_STORAGE_ENGINE=OFF \
-        -DWITH_FEDERATED_STORAGE_ENGINE=OFF \
-        -DWITH_EXAMPLE_STORAGE_ENGINE=OFF \
-        -DWITH_NDBCLUSTER_STORAGE_ENGINE=OFF \
-        -DINSTALL_MYSQLTESTDIR= \
-        ..
+      - uses: cmake/configure
+        with:
+          opts: |
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_CONFIG=mysql_release \
+            -DWITH_EDITLINE=system \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DSYSCONFDIR=/etc \
+            -DMYSQL_DATADIR=/var/lib/mysql \
+            -DMYSQL_UNIX_ADDR=/run/mysqld/mysqld.sock \
+            -DDEFAULT_CHARSET=utf8mb4 \
+            -DDEFAULT_COLLATION=utf8mb4_0900_ai_ci \
+            -DENABLED_LOCAL_INFILE=ON \
+            -DINSTALL_INFODIR=share/info \
+            -DINSTALL_MANDIR=share/man \
+            -DINSTALL_PLUGINDIR=lib/${{package.name}}/plugin \
+            -DINSTALL_INCLUDEDIR=include/mysql \
+            -DINSTALL_DOCREADMEDIR=share/doc/${{package.name}} \
+            -DINSTALL_SUPPORTFILESDIR=share/${{package.name}} \
+            -DINSTALL_MYSQLSHAREDIR=share/${{package.name}} \
+            -DINSTALL_DOCDIR=share/doc/${{package.name}} \
+            -DWITH_ROCKSDB=OFF \
+            -DWITH_ASAN=OFF \
+            -DWITH_SYSTEMD=OFF \
+            -DWITH_SSL=system \
+            -DWITH_LZ4=system \
+            -DWITH_ICU=system \
+            -DWITH_FIDO=system \
+            -DWITH_VALGRIND=OFF \
+            -DWITH_ZLIB=system \
+            -DWITH_ZSTD=system \
+            -DWITH_UNIT_TESTS=OFF \
+            -DWITH_ROUTER=OFF \
+            -DWITH_NDB=OFF \
+            -DWITH_ARCHIVE_STORAGE_ENGINE=OFF \
+            -DWITH_BLACKHOLE_STORAGE_ENGINE=OFF \
+            -DWITH_FEDERATED_STORAGE_ENGINE=OFF \
+            -DWITH_EXAMPLE_STORAGE_ENGINE=OFF \
+            -DWITH_NDBCLUSTER_STORAGE_ENGINE=OFF
 
-  - name: "Install"
-    runs: |
-      cd build
-      DESTDIR="${{targets.destdir}}" ninja -j6 install
+      - uses: cmake/build
+        with:
+          opts: |
+            -- -j$(( $(nproc) / 2 ))
 
-  - name: "Remove extras"
-    runs: |
-      rm -rf "${{targets.destdir}}"/usr/mysql-test
-      rm -rf "${{targets.destdir}}"/usr/lib/libmysqlclient.so
-      rm -rf "${{targets.destdir}}"/usr/lib/libmysqlclient_r.so
-      rm -rf "${{targets.destdir}}"/usr/share/man/
-      rm -rf "${{targets.destdir}}"/usr/share/doc/
+      - uses: cmake/install
 
-  # - name: "Create required data directories"
-  #   runs: |
-  #     mkdir -p "${{targets.destdir}}"/run/mysqld
-  #     mkdir -p "${{targets.destdir}}"/var/lib/mysql
-  #     mkdir -p "${{targets.destdir}}"/var/tmp
+      - name: "Remove extras"
+        runs: |
+          rm -rf "${{targets.destdir}}"/usr/mysql-test
+          rm -rf "${{targets.destdir}}"/usr/share/man/
+          rm -rf "${{targets.destdir}}"/usr/share/doc/
 
-  - uses: strip
+      # - name: "Create required data directories"
+      #   runs: |
+      #     mkdir -p "${{targets.destdir}}"/run/mysqld
+      #     mkdir -p "${{targets.destdir}}"/var/lib/mysql
+      #     mkdir -p "${{targets.destdir}}"/var/tmp
+
+      - uses: strip
 
 subpackages:
   - name: "${{package.name}}-dev"

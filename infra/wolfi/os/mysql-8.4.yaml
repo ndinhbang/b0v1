@@ -103,7 +103,7 @@ pipeline:
       - uses: cmake/build
         with:
           opts: |
-            -- -j$(nproc)
+            -- -j$(( $(nproc) / 2 ))
       - uses: cmake/install
       # CMAKE_INSTALL_PREFIX=/usr confuses this.
       # - name: "Fix installation path of systemd components"
