@@ -63,14 +63,6 @@ environment:
       - zstd-dev
 
 pipeline:
-  # This package requires boost 1.77 and we are not building that version.
-  - working-directory: /home/build/boost
-    pipeline:
-      - uses: fetch
-        with:
-          uri: https://archives.boost.io/release/1.77.0/source/boost_1_77_0.tar.bz2
-          expected-sha256: fc9f85fc030e233142908241af7a846e60630aa7388de9a5fafb1f3a26840854
-
   - uses: git-checkout
     with:
       repository: https://github.com/percona/percona-server
@@ -88,6 +80,8 @@ pipeline:
     runs: |
       mkdir build && cd build
       cmake . -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_VERBOSE_MAKEFILE=ON \
         -DBUILD_CONFIG=mysql_release \
         -DWITH_EDITLINE=system \
         -DCMAKE_INSTALL_PREFIX=/usr \
@@ -95,7 +89,7 @@ pipeline:
         -DMYSQL_DATADIR=/var/lib/mysql \
         -DMYSQL_UNIX_ADDR=/run/mysqld/mysqld.sock \
         -DDEFAULT_CHARSET=utf8mb4 \
-        -DDEFAULT_COLLATION=utf8mb4_general_ci \
+        -DDEFAULT_COLLATION=utf8mb4_0900_ai_ci \
         -DENABLED_LOCAL_INFILE=ON \
         -DINSTALL_INFODIR=share/info \
         -DINSTALL_MANDIR=share/man \
@@ -103,13 +97,11 @@ pipeline:
         -DINSTALL_INCLUDEDIR=include/mysql \
         -DINSTALL_DOCREADMEDIR=share/doc/${{package.name}} \
         -DINSTALL_SUPPORTFILESDIR=share/${{package.name}} \
+        -DINSTALL_MYSQLSHAREDIR=share/${{package.name}} \
         -DINSTALL_DOCDIR=share/doc/${{package.name}} \
-        -DSYSTEMD_SERVICES_DIR=lib/systemd/system \
-        -DSYSTEMD_TMPFILES_DIR=lib/tmpfiles.d \
-        -DWITH_ROCKSDB=YES \
+        -DWITH_ROCKSDB=OFF \
         -DWITH_ASAN=OFF \
-        -DWITH_EXTRA_CHARSETS=complex \
-        -DWITH_SYSTEMD=ON \
+        -DWITH_SYSTEMD=OFF \
         -DWITH_SSL=system \
         -DWITH_LZ4=system \
         -DWITH_ICU=system \
@@ -117,25 +109,29 @@ pipeline:
         -DWITH_VALGRIND=OFF \
         -DWITH_ZLIB=system \
         -DWITH_ZSTD=system \
-        -DWITH_TEST=off \
+        -DWITH_UNIT_TESTS=OFF \
+        -DWITH_DEBUG=OFF \
+        -DWITH_ROUTER=OFF \
+        -DWITH_NDB=OFF \
+        -DWITH_ARCHIVE_STORAGE_ENGINE=OFF \
+        -DWITH_BLACKHOLE_STORAGE_ENGINE=OFF \
+        -DWITH_FEDERATED_STORAGE_ENGINE=OFF \
+        -DWITH_EXAMPLE_STORAGE_ENGINE=OFF \
+        -DWITH_NDBCLUSTER_STORAGE_ENGINE=OFF \
         ..
 
   - name: "Install"
     runs: |
       cd build
-      DESTDIR="${{targets.destdir}}" ninja -j 2 install
-
-  # CMAKE_INSTALL_PREFIX=/usr confuses this.
-  - name: "Fix installation path of systemd components"
-    runs: |
-      mv "${{targets.destdir}}"/usr/usr/lib/* "${{targets.destdir}}"/usr/lib/
-      rmdir -p --ignore-fail-on-non-empty "${{targets.destdir}}"/usr/usr/lib
+      DESTDIR="${{targets.destdir}}" ninja -j6 install
 
   - name: "Remove extras"
     runs: |
       rm -rf "${{targets.destdir}}"/usr/mysql-test
       rm -rf "${{targets.destdir}}"/usr/lib/libmysqlclient.so
       rm -rf "${{targets.destdir}}"/usr/lib/libmysqlclient_r.so
+      rm -rf "${{targets.destdir}}"/usr/share/man/
+      rm -rf "${{targets.destdir}}"/usr/share/doc/
 
   - name: "Create required data directories"
     runs: |
@@ -162,14 +158,6 @@ subpackages:
           mkdir -p ${{targets.contextdir}}/
           cp docker-entrypoint.sh ${{targets.contextdir}}/docker-entrypoint.sh
           chmod +x ${{targets.contextdir}}/docker-entrypoint.sh
-
-  - name: "${{package.name}}-systemd-units"
-    description: "systemd units for Percona Server"
-    pipeline:
-      - runs: |
-          mkdir -p "${{targets.subpkgdir}}"/usr/lib/systemd/system
-          mv "${{targets.destdir}}"/usr/lib/systemd/system/* "${{targets.subpkgdir}}"/usr/lib/systemd/system
-          rmdir -p --ignore-fail-on-non-empty "${{targets.destdir}}"/usr/lib/systemd/system
 
 update:
   enabled: true
