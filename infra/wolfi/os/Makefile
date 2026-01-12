@@ -563,7 +563,7 @@ $(compile_targets): compile/%: ## Compile package configuration (e.g., compile/p
 EXCLUDE_PKGS ?= mysql-8.4 percona-server-8.4
 .PHONY: pkg/all
 pkg/all: $(KEY) pkg/cache ## Build all packages found in the current directory
-	$(eval filtered_pkgs := $(filter-out $(EXCLUDE_PKGS),$(pkgs)))
+	$(eval filtered_pkgs := $(sort $(filter-out $(EXCLUDE_PKGS),$(pkgs))))
 	@echo "Building all packages: $(filtered_pkgs)"
 	@for pkg in $(filtered_pkgs); do \
 		echo "--------------------------------------------------"; \
