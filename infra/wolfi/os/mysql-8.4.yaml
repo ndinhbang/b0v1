@@ -99,6 +99,7 @@ pipeline:
             -DWITH_ROUTER=OFF \
             -DINSTALL_MYSQLTESTDIR= \
             -DWITH_NDB=OFF
+
       - uses: cmake/build
         with:
           opts: |
