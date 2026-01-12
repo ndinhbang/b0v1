@@ -227,7 +227,7 @@ test:
         extra-library-paths: "/usr/lib/private"
     - name: Check versions
       runs: |
-        mysql --version |grep "${{package.version}}"
+        mysql --version | grep "${{package.version}}"
         mysqladmin --version | grep "${{package.version}}"
     - name: Test
       uses: test/daemon-check-output
