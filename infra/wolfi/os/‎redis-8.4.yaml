@@ -1,0 +1,92 @@
+package:
+  name: redis-8.4
+  version: 8.4.0
+  epoch: 0
+  description: Advanced key-value store
+  copyright:
+    - license: AGPL-3.0
+  dependencies:
+    provides:
+      - redis=${{package.full-version}}
+    runtime:
+      - posix-libc-utils # `getent` is required on startup in ha mode for ip introspection cluster formation
+
+environment:
+  contents:
+    packages:
+      - autoconf
+      - automake
+      - bash
+      - build-base
+      - busybox
+      - ca-certificates-bundle
+      - linux-headers
+      - openssl-dev
+
+pipeline:
+  - uses: git-checkout
+    with:
+      expected-commit: 60ba86f3c8b4e1ec96451171753a0a38e5c45a0c
+      repository: https://github.com/redis/redis.git
+      tag: ${{package.version}}
+
+  # - uses: patch
+  #   with:
+  #     patches: 0000-Disable-protected-mode.patch
+
+  - runs: |
+      export CFLAGS="$CFLAGS -DUSE_MALLOC_USABLE_SIZE"
+        make USE_JEMALLOC=no \
+        MALLOC=libc \
+        BUILD_TLS=yes \
+        all -j$(nproc)
+      make install PREFIX=/usr INSTALL_BIN="${{targets.destdir}}/usr/bin"
+
+  - uses: strip
+
+subpackages:
+  - name: ${{package.name}}-cli-8.4
+    pipeline:
+      - runs: |
+          mkdir -p "${{targets.subpkgdir}}"/usr/bin
+          mv "${{targets.destdir}}"/usr/bin/redis-cli "${{targets.subpkgdir}}"/usr/bin/redis-cli
+    description: redis-cli is the command line interface utility to talk with Redis.
+    dependencies:
+      provides:
+        - redis-cli=${{package.full-version}}
+
+  - name: ${{package.name}}-benchmark-8.4
+    pipeline:
+      - runs: |
+          mkdir -p "${{targets.subpkgdir}}"/usr/bin
+          mv "${{targets.destdir}}"/usr/bin/redis-benchmark "${{targets.subpkgdir}}"/usr/bin/redis-benchmark
+    description: redis-benchmark utility that simulates running commands done by N clients while at the same time sending M total queries.
+    dependencies:
+      provides:
+        - redis-benchmark=${{package.full-version}}
+
+update:
+  enabled: true
+  github:
+    identifier: redis/redis
+    tag-filter-prefix: "8.4."
+
+test:
+  environment:
+    contents:
+      packages:
+        - redis-cli
+  pipeline:
+    - runs: |
+        cat <<EOF >> /tmp/redis.conf
+        dbfilename dump.rdb
+        pidfile /tmp/redis_6379.pid
+        dir /tmp/
+        EOF
+
+        redis-server /tmp/redis.conf &
+        sleep 2 # wait for redis to start
+        redis-cli SET bike:1 "Process 134" || exit 1
+        redis-cli GET bike:1 | grep 'Process 134' || exit 1
+        redis-cli exists bike:1 | grep 1 || exit 1
+        redis-cli exists bike:2 | grep 0 || exit 1
