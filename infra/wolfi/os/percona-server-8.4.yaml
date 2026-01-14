@@ -1,4 +1,5 @@
 # https://github.com/wolfi-dev/os/blob/2250fad9680d65e4faec65d106375642a46e7a5e/percona-server-8.4.yaml
+# https://dev.mysql.com/doc/refman/8.4/en/source-configuration-options.html
 package:
   name: percona-server-8.4
   version: "8.4.7.7"
@@ -117,7 +118,11 @@ pipeline:
             -DWITH_BLACKHOLE_STORAGE_ENGINE=OFF \
             -DWITH_FEDERATED_STORAGE_ENGINE=OFF \
             -DWITH_EXAMPLE_STORAGE_ENGINE=OFF \
-            -DWITH_NDBCLUSTER_STORAGE_ENGINE=OFF
+            -DWITH_NDBCLUSTER_STORAGE_ENGINE=OFF \
+            -DINSTALL_MYSQLTESTDIR= \
+            -DREPRODUCIBLE_BUILD=ON \
+            -DWITH_JEMALLOC=OFF \
+            -DWITH_TCMALLOC=OFF
 
       - uses: cmake/build
         with:
