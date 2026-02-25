@@ -35,8 +35,8 @@ contents:
     - php-8.4-xml
     # Additional extensions
     # - php-8.4-apache
-    # - php-8.4-apcu
-    # - php-8.4-gd
+    - php-8.4-apcu
+    - php-8.4-gd
     # - php-8.4-grpc
     # - php-8.4-igbinary
     # - php-8.4-intl
@@ -45,11 +45,11 @@ contents:
     # - php-8.4-pcntl
     # - php-8.4-pdo_pgsql
     # - php-8.4-protobuf
-    # - php-8.4-redis
+    - php-8.4-redis
     # - php-8.4-swoole
     # - php-8.4-zip
     # - php-8.4-zstd
-    # - php-8.4-xdebug
+    - php-8.4-xdebug
     #  dev
     - composer
     - php-8.4-xmlwriter
