@@ -1,14 +1,38 @@
 types {
-    text/html html htm;
-    text/css css;
-    image/png png;
-    image/jpg jpg jpeg;
-    image/gif gif;
-    image/svg+xml svg;
-    application/javascript js;
+    # Data interchange
     application/json json;
-    application/manifest+json webmanifest;
+    application/ld+json jsonld;
+    application/rss+xml rss;
+    application/geo+json geojson;
+    application/xml xml;
+
+    # JavaScript
+    text/javascript js mjs;
     application/wasm wasm;
+
+    # Manifest files
+    application/manifest+json webmanifest;
+
+    # Media files
+    image/apng apng;
+    image/gif gif;
+    image/jpeg jpeg jpg;
+    image/png png;
+    image/svg+xml svg svgz;
     image/webp webp;
-    image/x-icon ico;
+
+    # Microsoft Office
+    application/msword doc;
+    application/vnd.ms-excel xls;
+    application/vnd.openxmlformats-officedocument.wordprocessingml.document docx;
+    application/vnd.openxmlformats-officedocument.spreadsheetml.sheet xlsx;
+
+    # Other
+    application/pdf pdf;
+    application/zip zip;
+    text/css css;
+    text/csv csv;
+    text/html htm html shtml;
+    text/markdown md markdown;
+    text/plain txt;
 }

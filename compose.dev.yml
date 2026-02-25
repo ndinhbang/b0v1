@@ -21,7 +21,7 @@ services:
     ports:
       - 8000:8080
     volumes:
-      # - ./apps/lp:/app
+      - ./apps/lp:/app
       - ./infra/docker/nginx/dev.conf:/etc/nginx/nginx.conf
     networks:
       - wolfi
