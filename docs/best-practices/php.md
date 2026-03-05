@@ -1,6 +1,6 @@
 ## Optimize PHP-FPM (Detailed & Specific Commands)
 
-![php-fpm](.images/php-fpm.png)
+![php-fpm](../.images/php-fpm.png)
 
 ### I. OPCache
 
@@ -79,3 +79,5 @@ php -i | grep open_basedir
 - https://symfony.com/doc/current/performance.html#performance-configure-opcache
 - https://hatam.notion.site/www-conf-21a7827e85968065bfc4cfd8ee46f11a
 - https://github.com/hipages/php-fpm_exporter
+- https://mateusguimaraes.com/posts/optimizing-php-applications-for-performance
+- https://github.com/richardforth/apache2buddy

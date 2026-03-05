@@ -10,7 +10,7 @@ If you're using a builder outside of Docker Desktop, such as if you're using Doc
 
 Use the [`tonistiigi/binfmt`](https://github.com/tonistiigi/binfmt) image to install QEMU and register the executable types on the host with a single command:
 
-```
+```sh
 docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-*
 docker run --privileged --rm tonistiigi/binfmt --install all
 ```
@@ -19,13 +19,13 @@ This installs the QEMU binaries and registers them with [`binfmt_misc`](https://
 
 To check if QEMU is installed correctly, you can run:
 
-```
+```sh
 ls -al /proc/sys/fs/binfmt_misc/
 ```
 
 Expected output should include entries like `qemu-aarch64`, `qemu-arm`, `qemu-ppc64le`, etc.:
 
-```
+```sh
 drwxr-xr-x 2 root root 0 Dec 12 21:31 ./
 dr-xr-xr-x 1 root root 0 Dec 12 20:39 ../
 -rw-r--r-- 1 root root 0 Dec 12 21:31 python3.11
@@ -46,12 +46,12 @@ Once QEMU is installed and the executable types are registered on the host OS, t
 
 For example, to check the handler for the ARM 64-bit architecture (aarch64), read the content of the corresponding virtual file:
 
-```
+```sh
 cat /proc/sys/fs/binfmt_misc/qemu-aarch64
 ```
 Expected output:
 
-```
+```sh
 enabled
 interpreter /usr/bin/qemu-aarch64
 flags: POCF
@@ -70,7 +70,7 @@ If you see these entries listed and `enabled` after running the command, it mean
 
 You can test if the emulation is working by running a container for a different architecture. For example, to run an ARM64 container on an x86_64 host:
 
-```
+```sh
 docker run --rm --platform linux/arm64 alpine uname -a
 docker run --rm --platform linux/arm/v7 alpine uname -a
 docker run --rm --platform linux/ppc64le alpine uname -a
@@ -79,7 +79,7 @@ docker run --rm --platform linux/riscv64 alpine uname -a
 ```
 Expected output for the ARM64 container:
 
-```
+```sh
 Linux 20b9df4ab610 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 aarch64 Linux
 ```
 
@@ -101,7 +101,7 @@ This is a prerequisite for automatic service management on modern Linux distribu
 
 1.  Open your Debian WSL 2 terminal.
 2.  Use an editor to open the WSL configuration file:
-    ```
+    ```sh
     sudo nano /etc/wsl.conf
     ```
 3.  Add or ensure the following content is present (case sensitivity is important):
